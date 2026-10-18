@@ -1,0 +1,13 @@
+# LaTeX 编译中间产物
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+_build/
+
+# 系统文件
+.DS_Store
+Thumbs.db

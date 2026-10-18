@@ -1,0 +1,2170 @@
+% !TEX program = xelatex
+% =====================================================================
+%  ADC 安德鲁牙科连锁 · 系统分析与设计报告
+%  内容：愿景 / 业务建模（业务用例图、现状业务序列图、改进后业务序列图）
+%        需求（系统用例图、用例规约）
+%        分析（分析类图、分析序列图、分析状态机图）
+%        设计（建立数据层、精化业务层、精化表示层）
+%  编译：必须用 XeLaTeX（因为使用 ctex 中文宏包与 tikz 绘图）
+%        xelatex adc-report.tex
+%        xelatex adc-report.tex   （跑两遍，交叉引用才正确）
+% =====================================================================
+\documentclass[11pt,a4paper]{ctexart}
+
+\usepackage{geometry}
+\geometry{a4paper,left=2.4cm,right=2.4cm,top=2.7cm,bottom=2.6cm,headsep=0.6cm}
+
+\usepackage[table]{xcolor}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{fancyhdr}
+\usepackage[indentafter,nobottomtitles*]{titlesec}
+\usepackage{needspace}
+\usepackage{tocloft}
+\usepackage[most]{tcolorbox}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,shapes.misc,fit,backgrounds,calc}
+\usepackage{longtable}
+\usepackage{listings}
+\usepackage[hidelinks]{hyperref}
+
+% ------------------------- SQL 代码样式 -------------------------
+\lstdefinestyle{sql}{
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\color{adcblue}\bfseries,
+  commentstyle=\color{adcgreen!85}\itshape,
+  stringstyle=\color{adcorange},
+  numbers=left,numberstyle=\tiny\color{adcgray!65},numbersep=8pt,
+  backgroundcolor=\color{adclight!40},
+  frame=single,framerule=0.4pt,rulecolor=\color{adcblue!30},
+  breaklines=true,columns=flexible,keepspaces=true,showstringspaces=false,
+  xleftmargin=14pt,xrightmargin=3pt,aboveskip=8pt,belowskip=8pt,
+  morekeywords={INT,DATE,DECIMAL,VARCHAR,ENUM,REFERENCES,COMMENT,ENGINE,
+                TEXT,CHAR,TINYINT,UNIQUE,INDEX,AUTO_INCREMENT}
+}
+
+% ------------------------- 配色 -------------------------
+\definecolor{adcblue}{HTML}{17608F}
+\definecolor{adcnavy}{HTML}{0B3450}
+\definecolor{adclight}{HTML}{EAF3F8}
+\definecolor{adcgray}{HTML}{595959}
+\definecolor{adcred}{HTML}{C0504D}
+\definecolor{adcgreen}{HTML}{2E7D5B}
+\definecolor{adcorange}{HTML}{C87A28}
+
+% 表格线：统一为浅蓝细线，配合蓝色表头
+\arrayrulecolor{adcblue!45}
+\setlength{\heavyrulewidth}{0.11em}
+\setlength{\lightrulewidth}{0.05em}
+\setlength{\aboverulesep}{0.45ex}
+\setlength{\belowrulesep}{0.55ex}
+
+% ------------------------- 标题样式 -------------------------
+% 章节标题交给 titlesec：编号浅色 + 标题深蓝 + 双色分隔线
+\renewcommand{\thesection}{\chinese{section}、}
+\renewcommand{\thesubsection}{\arabic{section}.\arabic{subsection}}
+\titleformat{\section}[block]
+  {\normalfont\Large\bfseries}
+  {\color{adcblue!55}\thesection}
+  {0.12em}
+  {\color{adcblue}}
+  [\nobreak\vspace{-0.55em}%
+   {\color{adcblue}\rule{2.4cm}{1.5pt}}%
+   {\color{adcblue!18}\rule{\dimexpr\linewidth-2.4cm\relax}{1.5pt}}]
+\titlespacing*{\section}{0pt}{1.35em}{1.05em}
+
+\titleformat{\subsection}[hang]
+  {\normalfont\large\bfseries\color{adcblue!88}}
+  {\color{adcblue!60}\thesubsection\hspace{0.62em}}
+  {0pt}{}
+\titlespacing*{\subsection}{0pt}{1.05em}{0.42em}
+
+\titleformat{\subsubsection}[hang]
+  {\normalfont\normalsize\bfseries\color{black!78}}
+  {\thesubsubsection\hspace{0.5em}}{0pt}{}
+\titlespacing*{\subsubsection}{0pt}{0.8em}{0.3em}
+
+\setcounter{secnumdepth}{3}
+
+
+
+% ------------------------- 目录样式 -------------------------
+\renewcommand{\contentsname}{目\hspace{1.2em}录}
+\renewcommand{\cfttoctitlefont}{\hfill\Huge\bfseries\color{adcblue}}
+\renewcommand{\cftaftertoctitle}{\hfill}
+\setlength{\cftaftertoctitleskip}{14pt}
+\renewcommand{\cftsecfont}{\small\bfseries\color{adcblue!92}}
+\renewcommand{\cftsecpagefont}{\small\bfseries\color{adcblue!92}}
+\renewcommand{\cftsecaftersnum}{\hspace{0.45em}}
+\renewcommand{\cftsecleader}{\color{adcblue!35}\cftdotfill{\cftdotsep}}
+\renewcommand{\cftsubsecfont}{\small\color{black!82}}
+\renewcommand{\cftsubsecpagefont}{\small\color{black!70}}
+\renewcommand{\cftsubsecaftersnum}{\hspace{0.35em}}
+\renewcommand{\cftsubsecleader}{\color{adcblue!22}\cftdotfill{\cftdotsep}}
+\setlength{\cftbeforesecskip}{1.5pt}
+\setlength{\cftbeforesubsecskip}{0pt}
+\setlength{\cftsecindent}{0pt}
+\setlength{\cftsubsecindent}{1.4em}
+\setlength{\cftsecnumwidth}{2.5em}
+\setlength{\cftsubsecnumwidth}{2.6em}
+
+% ------------------------- 页眉页脚 -------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{adcgray}ADC 安德鲁牙科连锁 · 系统分析与设计报告}
+\fancyhead[R]{%
+  \tikz[baseline=-0.45ex]{\node[fill=adclight,text=adcblue,rounded corners=4pt,
+    inner xsep=6pt,inner ysep=1.3pt,font=\scriptsize\bfseries]{\thepage};}}
+\renewcommand{\headrulewidth}{0.4pt}
+\setlength{\headheight}{22pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{adcblue!42}\leaders\hrule height \headrulewidth\hfill}}
+\fancyfoot[C]{}
+
+% ------------------------- 表格与图注 -------------------------
+\renewcommand{\arraystretch}{1.28}
+\setlength{\parskip}{3pt plus 1pt}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\captionsetup{font=small,labelfont={bf,color=adcblue},labelsep=quad,skip=6pt}
+
+% 图释标签：图 N 说明 前面的小色块
+\newcommand{\figtag}[1]{%
+  \tikz[baseline=-0.35ex]{\node[fill=adcblue!90,text=white,rounded corners=1.5pt,
+    inner xsep=5pt,inner ysep=1.2pt,font=\scriptsize\bfseries]{#1};}\hspace{2pt}}
+
+
+% ------------------------- 用例规约盒子 -------------------------
+\newtcolorbox{ucbox}[1]{%
+  enhanced,breakable,
+  colback=white,colframe=adcblue!65,boxrule=0.5pt,arc=2pt,
+  left=7pt,right=7pt,top=6pt,bottom=6pt,
+  before skip=10pt,after skip=10pt,
+  title={#1},fonttitle=\bfseries\color{white},
+  colbacktitle=adcblue!85,coltitle=white}
+
+% ------------------------- TikZ 公共样式 -------------------------
+\tikzset{
+  assoc/.style={draw=adcblue!60,line width=0.6pt},
+  llbox/.style={draw=adcblue!70,fill=adclight!75,rounded corners=1.5pt,
+                minimum width=2.35cm,minimum height=0.78cm,align=center,font=\scriptsize,
+                inner sep=2pt},
+  uc/.style={ellipse,draw=adcblue!65,fill=adclight!45,minimum width=2.80cm,
+             minimum height=1.05cm,align=center,font=\scriptsize,inner sep=1pt},
+  worker/.style={draw=adcblue!45,fill=adclight!70,rounded corners=2pt,
+                 minimum width=2.35cm,minimum height=0.62cm,align=center,font=\scriptsize},
+  msg/.style={->,>=Stealth,thick,draw=black!70},
+  msgp/.style={->,>=Stealth,thick,draw=adcred},
+  msgi/.style={->,>=Stealth,thick,draw=adcgreen},
+  msgl/.style={->,>=Stealth,thick,draw=adcblue!80},
+  msgz/.style={->,>=Stealth,thick,draw=adcorange},
+  ret/.style={->,>=Stealth,thick,draw=black!42,dashed},
+  % ---- 分析类图 / 表结构图 专用 ----
+  cls/.style={draw=adcblue!70,line width=0.6pt,fill=adclight!85,inner sep=3pt,
+              minimum height=0.54cm,align=center,font=\scriptsize\bfseries,text=adcblue},
+  clsb/.style={draw=adcblue!70,line width=0.6pt,fill=white,inner sep=3.2pt,
+               anchor=north,align=left,font=\tiny,text=black!85},
+  tbl/.style={draw=adcgreen!78,line width=0.6pt,fill=adcgreen!10,inner sep=3pt,
+              minimum height=0.54cm,align=center,font=\scriptsize\bfseries,text=adcgreen!85},
+  tblb/.style={draw=adcgreen!78,line width=0.6pt,fill=white,inner sep=3.2pt,
+               anchor=north,align=left,font=\tiny,text=black!85},
+  gen/.style={draw=adcblue!70,line width=0.6pt,-{Triangle[open,length=5pt,width=6pt]}},
+  comp/.style={draw=adcblue!60,line width=0.6pt,-{Diamond[length=5pt,width=5pt]}},
+  fk/.style={draw=adcgreen!72,line width=0.6pt,-{Stealth[length=3.6pt]}},
+  robo/.style={draw=adcblue!65,line width=0.5pt,-{Stealth[length=3.4pt]}},
+  ctrl/.style={draw=adcblue!55,fill=white,rounded corners=3pt,inner sep=4pt,
+               minimum width=3.9cm,minimum height=0.52cm,align=center,font=\tiny},
+  bnd/.style={draw=adcblue!45,fill=adclight!45,rounded corners=3pt,inner sep=4pt,
+              minimum width=3.3cm,minimum height=0.52cm,align=center,font=\tiny},
+}
+% 业务执行者/系统执行者：火柴人
+\newcommand{\actor}[3]{%
+  \begin{scope}[shift={(#1,#2)}]
+    \draw[thick,adcblue] (0,0.72) circle (0.15);
+    \draw[thick,adcblue] (0,0.57) -- (0,0.24);
+    \draw[thick,adcblue] (-0.24,0.45) -- (0.24,0.45);
+    \draw[thick,adcblue] (0,0.24) -- (-0.22,-0.06);
+    \draw[thick,adcblue] (0,0.24) -- (0.22,-0.06);
+    \node[font=\scriptsize,align=center,text=black!85,fill=white,inner sep=1pt] at (0,-0.40) {#3};
+  \end{scope}}
+% 生命线
+\newcommand{\lifeline}[4]{%
+  \node[llbox] (#4) at (#1,0) {#2};
+  \draw[adcblue!45,dashed] (#1,-0.42) -- (#1,#3);}
+% 消息
+\newcommand{\msg}[5][msg]{%
+  \draw[#1, shorten >= 1.5pt] (#2,#3) -- (#4,#3) node[midway,above=3pt,font=\scriptsize,text=black!88,fill=white,inner sep=1.8pt] {#5};}
+% ---- 分析类图：两栏式类框（名称栏 + 属性栏）----
+\newcommand{\clsbox}[5]{%
+  \node[cls,minimum width=#3cm] (#1) at #2 {#4};%
+  \node[clsb,minimum width=#3cm] (#1b) at (#1.south) {#5};}
+\newcommand{\clsgbox}[5]{%
+  \node[cls,minimum width=#3cm,text=adcgray,draw=adcgray!55,fill=black!4] (#1) at #2 {#4};%
+  \node[clsb,minimum width=#3cm,draw=adcgray!55,text=adcgray] (#1b) at (#1.south) {#5};}
+% ---- 数据库图表：两栏式表框（表名栏 + 字段栏）----
+\newcommand{\tblbox}[5]{%
+  \node[tbl,minimum width=#3cm] (#1) at #2 {#4};%
+  \node[tblb,minimum width=#3cm] (#1b) at (#1.south) {#5};}
+% ---- 关联线：两端标多重性，中间可标关联名 ----
+\newcommand{\rel}[5][]{%
+  \draw[assoc] (#2) -- (#3)
+    node[pos=0.14,font=\tiny,text=black!75,fill=white,inner sep=0.9pt] {#4}
+    node[pos=0.86,font=\tiny,text=black!75,fill=white,inner sep=0.9pt] {#5}
+    node[midway,font=\tiny,text=adcgray,fill=white,inner sep=0.9pt] {#1};}
+% ---- 字段行辅助：PK / FK 标记 ----
+\newcommand{\pk}[1]{\textcolor{adcgreen!85}{\textbf{PK}}~#1}
+\newcommand{\fk}[1]{\textcolor{adcorange!95}{\textbf{FK}}~#1}
+% ---- 短关联线：水平（多重性分置线上方与下方）----
+\newcommand{\relh}[4]{%
+  \draw[assoc] (#1) -- (#2)
+    node[near start,above=0.6pt,font=\tiny,text=black!75,fill=white,inner sep=0.7pt] {#3}
+    node[near end,below=0.6pt,font=\tiny,text=black!75,fill=white,inner sep=0.7pt] {#4};}
+% ---- 短关联线：垂直（多重性分置线左右）----
+\newcommand{\relv}[4]{%
+  \draw[assoc] (#1) -- (#2)
+    node[near start,left=0.6pt,font=\tiny,text=black!75,fill=white,inner sep=0.7pt] {#3}
+    node[near end,right=0.6pt,font=\tiny,text=black!75,fill=white,inner sep=0.7pt] {#4};}
+
+\begin{document}
+
+% ============================ 封面 ============================
+\thispagestyle{empty}
+\null
+\begin{tikzpicture}[remember picture,overlay]
+  \coordinate (P0) at (current page.north west);
+  \begin{scope}[shift={(P0)},x=1mm,y=-1mm]
+
+    % ---- 顶部深色主视觉 ----
+    \shade[left color=adcnavy,right color=adcblue]
+      (0,0) rectangle (210,112);
+
+    % ---- 牙弓弧线装饰 ----
+    \begin{scope}
+      \clip (0,0) rectangle (210,112);
+      \foreach \r in {56,70,84,98,112,126}{%
+        \draw[white,opacity=0.05,line width=1pt] (172,126) circle (\r);}
+    \end{scope}
+
+    % ---- 顶部信息 ----
+    \node[anchor=west,text=white,font=\fontsize{15.5}{19}\selectfont\bfseries] at (24,27) {系统分析与设计};
+    \node[anchor=west,text=white,font=\fontsize{7.6}{10}\selectfont] at (24,35)
+      {\addfontfeatures{LetterSpace=22}SYSTEM ANALYSIS AND DESIGN};
+    \draw[white,opacity=0.45,line width=0.7pt] (24,41.5) -- (69,41.5);
+    \node[anchor=east,text=white,font=\fontsize{10.5}{13}\selectfont] at (186,27) {2026 年 10 月};
+
+    % ---- 徽标 ----
+    \draw[white,opacity=0.55,line width=0.6pt] (170,58) circle (10);
+    \draw[white,opacity=0.15,line width=2.4pt] (170,58) circle (10.8);
+    \node[text=white,font=\fontsize{14}{17}\selectfont\bfseries] at (170,58) {ADC};
+    \node[text=white,opacity=0.55,font=\fontsize{5.2}{7}\selectfont] at (170,73)
+      {\addfontfeatures{LetterSpace=8}ANDREW'S DENTAL CHAIN};
+
+    % ---- 主标题 ----
+    \node[anchor=west,text=white,opacity=0.72,font=\fontsize{10.5}{13}\selectfont] at (24,60)
+      {ADC 牙科连锁信息管理系统};
+    \node[anchor=west,text=white,font=\fontsize{38}{42}\selectfont\bfseries] at (24,79) {安德鲁牙科连锁};
+    \node[anchor=west,text=white,opacity=0.86,font=\fontsize{19.5}{24}\selectfont] at (24,96)
+      {面向规模化扩张的数据设计};
+    \draw[white,opacity=0.26,line width=0.6pt] (24,103) -- (186,103);
+
+    % ---- 报告信息 ----
+    \node[anchor=west,text=adcblue,font=\fontsize{8.2}{10.5}\selectfont\bfseries] at (24,125)
+      {\addfontfeatures{LetterSpace=14}报告信息};
+    \draw[adcblue!12,line width=0.6pt] (24,134) -- (186,134);
+    \draw[adcblue!12,line width=0.6pt] (24,160) -- (186,160);
+    \draw[adcblue!12,line width=0.6pt] (24,186) -- (186,186);
+    \draw[adcblue!12,line width=0.6pt] (105,134) -- (105,186);
+
+    \foreach \x/\lab/\val/\y in {%
+      30/姓名/马博晨/144,%
+      111/学号/8210241903/144,%
+      30/班级/信管T2401班/170,%
+      111/指导教师/毕文杰/170}{%
+      \node[anchor=base west,text=adcgray,font=\fontsize{8.6}{11}\selectfont] at (\x,\y)
+        {\addfontfeatures{LetterSpace=6}\lab};
+      \node[anchor=base west,text=black!86,font=\fontsize{13.5}{17}\selectfont\bfseries] at (\x,\y+9.4) {\val};
+    }
+
+    % ---- 报告结构 ----
+    \node[anchor=west,text=adcblue,font=\fontsize{8.2}{10.5}\selectfont\bfseries] at (24,197)
+      {\addfontfeatures{LetterSpace=14}报告结构};
+    \draw[adcblue!20,line width=0.6pt] (24,201) -- (186,201);
+    \draw[adcblue!20,line width=0.6pt] (24,215) -- (186,215);
+    \foreach \x in {64.5,105,145.5}{%
+      \draw[adcblue!12,line width=0.6pt] (\x,201) -- (\x,215);}
+    \foreach \x/\ltr/\nm in {24/A/业务建模, 64.5/B/需求, 105/C/分析, 145.5/D/设计}{%
+      \node[anchor=west,text=adcblue,font=\fontsize{12.5}{15}\selectfont\bfseries] at (\x+6.5,208) {\ltr};
+      \node[anchor=west,text=black!80,font=\fontsize{9.6}{12}\selectfont] at (\x+14.5,208) {\nm};
+    }
+
+    \node[anchor=north west,text=black!62,font=\fontsize{9.4}{15.5}\selectfont,text width=162mm] at (24,227)
+      {从业务建模到数据设计的一次完整实践：愿景、业务图、需求规约、分析图与数据库图表，\\[3pt]
+       以及数据层、业务层与表示层的分层设计交付。};
+
+    % ---- 页脚 ----
+    \draw[adcblue!16,line width=0.6pt] (24,266) -- (186,266);
+    \node[anchor=west,text=adcgray,font=\fontsize{8.4}{11}\selectfont] at (24,274)
+      {ADC 安德鲁牙科连锁 \quad·\quad 系统分析与设计课程报告};
+    \node[anchor=east,text=adcgray,font=\fontsize{8.4}{11}\selectfont] at (186,274)
+      {马博晨 \quad·\quad 8210241903};
+    \fill[adcblue] (0,294) rectangle (210,297);
+
+  \end{scope}
+\end{tikzpicture}
+\newpage
+
+% ============================ 目录 ============================
+\pagenumbering{roman}
+\thispagestyle{fancy}
+{\linespread{1.06}\selectfont
+\tableofcontents}
+\newpage
+
+% ============================ 正文 ============================
+\pagenumbering{arabic}
+\section{拟开发项目概述}
+
+本项目以安德鲁牙科连锁（Andrew's Dental Chain，以下简称 ADC）为拟开发项目的目标组织。ADC 在中国广东省经营 15 家牙科诊所，提供洗牙、牙齿修复、X 光、抛光、植牙、牙桥、牙冠等诊疗服务。目前各诊所基本上以“独立诊所的集合”模式运行，依赖总部人工监督管理，患者档案、预约登记、治疗记录与结算单分散在各诊所以纸质表单和本地表格的形式保存。
+
+ADC 计划在未来三年内把诊所数量翻一番（15 家增至 30 家）。随着规模扩大，这种“各自为政 + 人工监督”的架构暴露出三个悬而未决的问题：各地患者的治疗标准是否统一？各诊所的患者取消率是否存在差异？ADC 聘用的牙医是否具备符合业务需求的技能组合？与此同时，ADC 提出了一项按净利润的 10\% 分配激励基金的制度，却缺乏按季度跟踪每位牙医收入、成本与运营费用的数据基础，制度难以落地。
+
+首席执行官兼首席牙医 Andrew Chen 持有公司 60\% 的股权，拥有绝对决策权；但他清醒地意识到：要让连锁在快速扩张中不失控，必须建立基于标准化、高质量数据库的信息系统，这是防止业务失控的必要条件。
+
+因此，本项目拟开发的目标系统是 \textbf{ADC 牙科连锁信息管理系统}：一个以“患者—预约—就诊—治疗—结算单”为主线、覆盖牙医资质与诊所资源的连锁级关系型信息系统。本报告按课程建模工作流 \textbf{A 业务建模 $\rightarrow$ B 需求 $\rightarrow$ C 分析 $\rightarrow$ D 设计} 的顺序推进，依次交付愿景、业务建模工件、需求工件、分析工件（分析类图、分析序列图、分析状态机图）与设计工件（数据层、业务层、表示层）。
+
+% ============================ 二、愿景 ============================
+\section{愿景}
+
+\subsection{业务现状与主要问题}
+
+把 ADC 当前的诊疗业务“拍成片子”，可以看到三类反复出现的问题：
+
+\begin{itemize}[leftmargin=1.6em,topsep=3pt,itemsep=2pt]
+  \item \textbf{信息散落在各诊所，总部只能事后人工汇总。}患者档案、预约登记、治疗记录、结算单分别保存在 15 家诊所的纸质表单与各自的本地表格里；总部要了解经营情况，只能让各诊所人工上报、再手工合并，既慢又失真。
+  \item \textbf{管理口径不统一，风险看不见。}取消就诊是牙科行业的重要危险信号，需要迅速采取应对措施；但各诊所以不同方式记录“是否到诊”，总部既无法比较各诊所的取消率，也无从判断各地的治疗标准是否统一。
+  \item \textbf{牙医的价值与能力说不清。}牙医并不专属任何一家诊所，而是按所需技能在多家诊所间轮转；但“谁具备哪类资质、谁创造了多少净利润”没有系统记录，激励制度与人才招募都缺乏依据。
+\end{itemize}
+
+\subsection{愿景表述}
+
+\begin{tcolorbox}[colback=adclight!45,colframe=adcblue!75,boxrule=0.6pt,arc=2pt,left=8pt,right=8pt,top=7pt,bottom=7pt,
+  title={\bfseries 目标系统愿景},fonttitle=\bfseries\color{white},colbacktitle=adcblue!85]
+\begin{tabularx}{\linewidth}{@{}|L{2.4cm}|X|@{}}
+\hline
+\textbf{系统} & ADC 牙科连锁信息管理系统 \\
+\hline
+\textbf{目标组织} & 安德鲁牙科连锁（ADC） \\
+\hline
+\textbf{老大} & 首席执行官兼首席牙医 Andrew Chen \\
+\hline
+\textbf{目标} & 在诊所数量三年翻番的同时，使总部对各家诊所的患者取消率、治疗标准执行与牙医产能保持一致、可比较的可视与可控 \\
+\hline
+\textbf{度量指标} & 全连锁季度平均患者取消率 $=\dfrac{\sum\text{未到诊预约数}}{\sum\text{预约数}}$（单位：\%），并按诊所、按牙医拆分 \\
+\hline
+\textbf{对比时间} & 扩张启动前的一个完整财年（15 家诊所基线） \\
+\hline
+\textbf{改进值} & 全连锁平均取消率下降 25\% 以上；新增诊所开业首季度即达到与成熟诊所一致的取消率水平 \\
+\hline
+\end{tabularx}
+\end{tcolorbox}
+
+\subsection{度量指标的选取说明}
+
+愿景目标是\textbf{组织指标}，不是系统功能，也不是系统的性能指标。选择“患者取消率”作为头号指标，理由有三：
+
+\begin{enumerate}[leftmargin=1.8em,topsep=3pt,itemsep=2pt]
+  \item 它直接对应老大最关心的事——案例明确指出，高取消率是危险信号，必须迅速采取应对措施；取消率同时反映服务质量与产能浪费，是连锁扩张中最需要尽早发现的管理缺口。
+  \item 它可度量：每次预约是否到诊都能以布尔字段记录（初始为 0/false，就诊后更新为 1/true），按季度汇总即可得到基线与改进值，并可进一步按诊所、按牙医下钻。
+  \item 它能牵引需求排序：凡是支撑“记录就诊状态、按诊所与牙医统计、共享患者档案、按技能匹配牙医”的用例优先做，与标准化管理无关的花哨功能往后放。
+\end{enumerate}
+
+在权衡上，本系统暂时优先“看得清”（取消率、治疗标准执行、牙医业绩可统计），把“看得细”（如单次治疗的临床影像管理）放在次要位置；需要说明的是，若其他指标发生变化（例如扩张后牙医产能成为瓶颈），应在后续迭代中重新排序。
+
+% ============================ 三、业务建模 ============================
+\section{业务建模}
+
+业务建模要回答两个问题：\textbf{对外}，组织为外部提供了什么价值（业务用例图）；\textbf{对内}，组织内部各系统如何协作实现这些价值（业务序列图）。前者是“价值的集合”，后者是“系统的集合”。
+
+\subsection{业务执行者与业务工人}
+
+\textbf{业务执行者}是在组织之外、与组织交互的人群或机构（注意：是责任边界，不是物理边界）：
+
+\begin{itemize}[leftmargin=1.6em,topsep=3pt,itemsep=2pt]
+  \item \textbf{患者}：诊疗服务的接受方，是 ADC 存在价值的来源，也是取消率指标的主体。
+  \item \textbf{医疗耗材供应商}：向诊所供应一次性器械、麻醉剂、修复材料等耗材。
+  \item \textbf{支付／保险机构}：第三方结算机构，ADC 通过其完成诊疗费用的收付与理赔。
+\end{itemize}
+
+\textbf{业务工人}是组织内部承担责任的“人肉系统”，包括\textbf{牙医}、\textbf{前台接待员}、\textbf{诊所主管}与\textbf{总部管理者}。纸质患者登记表、各诊所的本地表格台账、纸质病历与手写结算单是组织内部的\textbf{业务实体}（非人系统），它们在业务序列图中与人和机构同等对待——这正是本次改进要替换的对象。
+
+需要说明：ADC 的五位合伙人（除 Chen 外）是公司的所有者，与公司之间是股权关系，不参与诊疗流程本身，故不作为业务执行者纳入本次业务用例图。
+
+\subsection{业务用例图}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+  % ---- 业务执行者 ----
+  \actor{0.75}{-2.45}{患者\\(客户)}
+  \actor{13.55}{-1.95}{医疗耗材供应商}
+  \actor{13.55}{-3.85}{支付／保险机构}
+
+  % ---- 业务边界 ----
+  \draw[adcblue!70,line width=0.8pt,rounded corners=4pt,fill=adclight!25]
+    (3.20,-7.10) rectangle (10.90,0.30);
+  \node[font=\small\bfseries,text=adcblue] at (7.05,0.58)
+    {安德鲁牙科连锁（业务边界）};
+
+  % ---- 业务用例：左列服务患者，右列服务供应商与支付方 ----
+  \node[uc] (u2) at (5.30,-1.50) {受理预约};
+  \node[uc] (u1) at (5.30,-3.40) {诊治患者};
+  \node[uc] (u4) at (8.90,-1.50) {采购医疗耗材};
+  \node[uc] (u3) at (8.90,-3.40) {出具结算单};
+
+  % 结算单的数据来自诊治（依赖）
+  \draw[dashed,adcblue!60,line width=0.7pt] (u1.east) -- (u3.west);
+
+  % ---- 业务工人（边界内底部）----
+  \node[worker] (w1) at (5.30,-6.30) {«业务工人»\\牙医};
+  \node[worker] (w2) at (8.90,-6.30) {«业务工人»\\前台接待员};
+
+  % ---- 患者 → 受理预约 / 诊治患者（一条总线，两条支线各占一行）----
+  \draw[assoc] (1.2,-2.00) -- (2.20,-2.00);
+  \draw[assoc] (2.20,-1.50) -- (2.20,-3.40);
+  \draw[assoc] (2.20,-1.50) -- (u2.west);
+  \draw[assoc] (2.20,-3.40) -- (u1.west);
+
+  % ---- 医疗耗材供应商 → 采购医疗耗材 ；支付／保险机构 → 出具结算单 ----
+  \draw[assoc] (13,-1.50) -- (u4.east);
+  \draw[assoc] (13,-3.40) -- (u3.east);
+
+  % ---- 业务工人 → 业务用例（垂直直连，不与其他线相交）----
+  \draw[assoc] (w1.north) -- (u1.south);
+  \draw[assoc] (w2.north) -- (u3.south);
+\end{tikzpicture}
+
+\caption{业务用例图：安德鲁牙科连锁对外提供的价值}
+\end{figure}
+
+\figtag{图 1 说明} 图中矩形是 ADC 的业务边界，椭圆是从组织外部视角看到的业务用例。\textbf{诊治患者}是核心业务用例：患者把“把牙治好”这件事交给 ADC 完成，ADC 由此获得诊疗收入，这是时光倒流三百年也依然成立的价值。\textbf{受理预约}是诊疗的入口——患者必须先把“某个时间请某位牙医看诊”这件事交给组织，诊治才可能发生。\textbf{出具结算单}是价值兑现的环节，患者与支付／保险机构通过它完成费用结算，这也是 ADC 希望推进标准化的地方（图中以虚线表示它依赖诊治产生的治疗数据）。\textbf{采购医疗耗材}位于图的右侧，服务的对象是供应商一侧的订单与货款关系。连线已按执行者各自归口，表示这些价值由牙医与前台接待员分别承担并共同实现——注意业务工人画在业务边界\textbf{内部}，他们是组织的人肉零件，而患者、供应商、支付／保险机构在边界之外。
+
+\subsection{现状业务序列图}
+
+选取与愿景最相关的流程片段：“患者来电预约 $\rightarrow$ 前台登记 $\rightarrow$ 患者到诊 $\rightarrow$ 牙医治疗 $\rightarrow$ 手写记录 $\rightarrow$ 手写结算 $\rightarrow$ 收款 $\rightarrow$ 月末人工汇总”的一次完整就诊。
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+  \def\xA{0}\def\xB{3.1}\def\xC{6.2}\def\xD{9.3}\def\xE{12.4}
+  % 生命线
+  \lifeline{\xA}{患者\\«业务执行者»}{-12.5}{A}
+  \lifeline{\xB}{前台接待员\\«业务工人»}{-12.5}{B}
+  \lifeline{\xC}{纸质预约登记簿\\«业务实体»}{-12.5}{C}
+  \lifeline{\xD}{牙医\\«业务工人»}{-12.5}{D}
+  \lifeline{\xE}{纸质病历与结算单\\«业务实体»}{-12.5}{E}
+
+  % 消息
+  \msg{\xA}{-1.25}{\xB}{致电提出就诊需求（姓名、症状、期望时间）}
+  \msg[msgp]{\xB}{-2.15}{\xC}{手写登记个人信息与预约时间}
+  \msg{\xC}{-3.05}{\xB}{翻查该患者已有记录（新患者则从头登记）}
+  \msg{\xB}{-3.95}{\xA}{口头确认预约时间与接诊牙医}
+  \msg{\xA}{-4.85}{\xD}{于约定时间到诊}
+  \msg[msgp]{\xD}{-5.75}{\xC}{翻查预约登记簿、核对患者信息}
+  \msg[msgp]{\xD}{-6.65}{\xE}{手写记录主诉与过敏史}
+  \msg{\xD}{-7.55}{\xA}{实施治疗（期间常追加 X 光、洗牙等）}
+  \msg[msgp]{\xD}{-8.45}{\xE}{手写记录治疗项目与消耗单位}
+  \msg{\xD}{-9.35}{\xB}{口头告知本次治疗项目与费用}
+  \msg[msgp]{\xB}{-10.25}{\xE}{手写逐行填写结算单}
+  \msg{\xA}{-11.15}{\xB}{现场支付费用}
+  \msg[msgp]{\xB}{-12.05}{\xC}{手工登记就诊／取消状态，月末人工汇总上报}
+
+  % 说明
+  \node[font=\scriptsize,text=adcred,align=left,anchor=west] at (0.1,-13.1)
+    {\textcolor{adcred}{$\longrightarrow$} 红色箭头＝现状中亟待消除的环节：信息重复录入、依赖纸质单据、人工汇总上报};
+\end{tikzpicture}
+\caption{现状业务序列图：一次完整的预约与就诊}
+\end{figure}
+
+\figtag{图 2 说明} 这张图是“拿着摄像机去拍”拍到的真实情况，此时还没有拟开发系统。三条真相一目了然：
+
+\begin{enumerate}[leftmargin=1.8em,topsep=3pt,itemsep=2pt]
+  \item \textbf{信息在纸面上重复流转。}挂号信息、主诉、过敏史、治疗项目、费用，分别由前台和牙医手写在不同纸质表单上；同一位患者的信息要登记、查找、抄录多次，既慢又容易出错。
+  \item \textbf{就诊状态没有可靠的落点。}“这位患者到底来没来”只被手写在一本纸质登记簿上，月末再由人逐页统计后上报总部——取消率无法实时掌握，更谈不上按诊所、按牙医拆解。
+  \item \textbf{患者与牙医的匹配靠人的经验。}电话里安排哪位牙医接诊，取决于前台对各位牙医时间与专长的印象；牙医在多家诊所轮转，其资质与忙闲分散在不同诊所的台账里，总部无法形成统一视图。
+\end{enumerate}
+
+\subsection{改进后业务序列图}
+
+改进的思路是引入一个新的业务实体——\textbf{ADC 牙科连锁信息管理系统}，由它接手原来由纸质表单、各诊所本地台账和人工汇总承担的责任。改进点严格对应三条经典改进模式：物流变信息流、改善信息流转、封装领域逻辑。
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+  \def\xA{0}\def\xB{3.3}\def\xC{6.6}\def\xD{9.9}\def\xE{13.2}
+  \lifeline{\xA}{患者\\«业务执行者»}{-13.4}{A}
+  \lifeline{\xB}{前台接待员\\«业务工人»}{-13.4}{B}
+  \lifeline{\xC}{连锁信息管理系统\\«业务实体»}{-13.4}{C}
+  \lifeline{\xD}{牙医\\«业务工人»}{-13.4}{D}
+  \lifeline{\xE}{总部管理者\\«业务工人»}{-13.4}{E}
+
+  \msg{\xA}{-1.25}{\xB}{致电提出就诊需求}
+  \msg{\xB}{-2.10}{\xC}{提交姓名与电话，请求患者档案}
+  \msg[msgi]{\xC}{-2.95}{\xB}{反馈患者档案、过敏史与既往就诊记录}
+  \msg{\xB}{-3.80}{\xC}{提交期望时间与治疗需求，请求可约时段}
+  \msg[msgz]{\xC}{-4.65}{\xB}{反馈按资质匹配的可接诊牙医与可约时段}
+  \msg{\xB}{-5.50}{\xA}{确认预约时间与接诊牙医}
+  \msg{\xA}{-6.35}{\xD}{于约定时间到诊}
+  \msg[msgl]{\xD}{-7.20}{\xC}{调取患者档案与过敏史}
+  \msg{\xD}{-8.05}{\xA}{实施治疗（期间常追加 X 光、洗牙等）}
+  \msg[msgl]{\xD}{-8.90}{\xC}{录入治疗项目与消耗标准单位}
+  \msg[msgz]{\xC}{-9.75}{\xD}{按标准单位价格自动试算费用}
+  \msg[msgz]{\xD}{-10.60}{\xC}{标记本次就诊为“已就诊”}
+  \draw[msgl] (\xC,-11.25) -- (\xC+0.85,-11.25) -- (\xC+0.85,-11.75) -- (\xC,-11.75);
+  \node[font=\scriptsize,text=black!88,anchor=west] at (\xC+0.95,-11.50) {生成结算单（逐行明细与总价）};
+  \msg[msgi]{\xE}{-12.20}{\xC}{查询各诊所取消率、治疗量与牙医业绩}
+  \msg[msgi]{\xC}{-13.05}{\xE}{反馈跨诊所统一经营视图}
+
+  \node[font=\scriptsize,anchor=west,align=left] at (0.1,-13.9)
+    {\textcolor{adcblue!80}{$\longrightarrow$} 物流变信息流\quad
+     \textcolor{adcgreen}{$\longrightarrow$} 改善信息流转\quad
+     \textcolor{adcorange}{$\longrightarrow$} 封装领域逻辑};
+\end{tikzpicture}
+
+\caption{改进后业务序列图：引入“连锁信息管理系统”后的预约与就诊}
+\end{figure}
+
+\figtag{图 3 说明} 对照图 2，逐条看变化：
+
+\begin{itemize}[leftmargin=1.6em,topsep=3pt,itemsep=3pt]
+  \item \textbf{物流变信息流（蓝色）}：纸质病历、手写记录被“调取档案”“录入治疗项目”两条消息取代。病历不再跟着纸张走，而是作为记录直接进入系统；结算单也不再手工逐行填写，而是由本次就诊的治疗数据自动生成。
+  \item \textbf{改善信息流转（绿色）}：前台不再翻纸质登记簿核对，一次查询即可调出跨诊所共享的患者档案与过敏史；总部管理者也不必再等各诊所月末上报，随时可查询各诊所的取消率与治疗量。数据从“各店各表”变成“全连锁一份”。
+  \item \textbf{封装领域逻辑（橙色）}：原来锁在前台与牙医经验里的规则被系统封装——“按资质与时段的牙医匹配”“按标准单位与单价计价”“到诊／取消的自动标记”，都在系统中完成。前台与牙医从“靠记忆的人”变成“会用系统的操作者”，新诊所也能立即获得一致的业务口径。
+\end{itemize}
+
+同时注意：诊室里的实际治疗动作（“实施治疗”）仍然由牙医完成，系统只是接管了信息与规则的流转——这正是“系统替换的是记录与协调，而不是医术本身”的边界所在。
+
+\subsection{改进前后对照}
+
+\begin{table}[H]
+\centering
+\caption{业务环节改进前后对照}
+\begin{tabularx}{\linewidth}{@{}L{2.5cm}L{4.6cm}L{4.6cm}L{2.0cm}@{}}
+\toprule
+\textbf{\textcolor{adcblue!92}{业务环节}} & \textbf{\textcolor{adcblue!92}{现状}} & \textbf{\textcolor{adcblue!92}{改进后}} & \textbf{\textcolor{adcblue!92}{改进模式}} \\
+\midrule
+患者档案 & 各诊所以纸质表登记，换店就诊须重新登记 & 全连锁统一档案，一店登记全连锁可见 & 改善信息流转 \\
+\addlinespace
+预约与排班 & 前台凭电话记录与印象手工安排 & 系统按牙医资质与可约时段匹配 & 封装领域逻辑 \\
+\addlinespace
+病历与治疗记录 & 手写纸质病历，治疗项目靠人工记 & 电子病历，治疗项目按标准单位录入 & 物流变信息流 \\
+\addlinespace
+计价与结算 & 手写结算单，价格靠记忆与查表 & 系统按标准单位价格生成逐行明细与总价 & 封装领域逻辑 \\
+\addlinespace
+就诊状态跟踪 & 纸质登记，月末人工统计，取消率不可算 & 每次预约为一条记录，到诊／取消自动标记 & 改善信息流转 \\
+\addlinespace
+牙医业绩与激励 & 无系统记录，10\% 激励制度无法落地 & 按季度自动汇总收入、成本与运营费用 & 封装领域逻辑 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ============================ 四、需求 ============================
+\section{需求}
+
+需求从改进后业务序列图\textbf{映射}而来：与拟开发系统有实线相连的实例所代表的系统，成为系统执行者；从外部指向系统的消息，成为系统用例。
+
+\subsection{系统执行者}
+
+\begin{itemize}[leftmargin=1.6em,topsep=3pt,itemsep=2pt]
+  \item \textbf{前台接待员（主执行者）}：主动发起登记患者档案、受理预约等用例。
+  \item \textbf{牙医（主执行者）}：主动发起记录就诊与治疗、生成结算单、记录就诊状态等用例。
+  \item \textbf{总部管理者（主执行者）}：维护牙医资质与诊所信息，查询统计与报表。
+  \item \textbf{时间（主执行者）}：作为特殊的业务实体，驱动“统计牙医季度业绩”这一用例——注意它是“到季度末触发”，不等于系统里的定时器。
+\end{itemize}
+
+注意：患者只与前台、牙医发生业务交互，并不直接操作本系统（由前台代理完成），因此\textbf{不把患者列为系统执行者}；支付／保险机构在结算环节由系统主动请求，作为辅执行者写入“生成结算单”用例的设计约束，不再单列。这也为未来面向患者的自助预约留下了扩展空间。
+
+\subsection{系统用例图}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+  % ---- 系统执行者 ----
+  \actor{0.75}{-1.85}{前台接待员\\(主执行者)}
+  \actor{0.75}{-5.05}{牙医\\(主执行者)}
+  \actor{13.55}{-1.85}{总部管理者\\(主执行者)}
+  \actor{13.55}{-8.70}{时间\\(主执行者)}
+
+  % ---- 系统边界 ----
+  \draw[adcblue!70,line width=0.8pt,rounded corners=4pt,fill=adclight!25]
+    (3.20,-8.80) rectangle (12.35,0.30);
+  \node[font=\small\bfseries,text=adcblue] at (7.775,0.58)
+    {ADC 牙科连锁信息管理系统（系统边界）};
+
+  % ---- 左列用例 ----
+  \node[uc] (c1) at (5.60,-1.40) {UC-01\\登记患者档案};
+  \node[uc] (c2) at (5.60,-3.00) {UC-02\\受理预约};
+  \node[uc] (c3) at (5.60,-4.60) {UC-03\\记录就诊与治疗};
+  \node[uc] (c4) at (5.60,-6.20) {UC-04\\生成结算单};
+  \node[uc] (c5) at (5.60,-7.80) {UC-05\\记录就诊状态};
+
+  % ---- 右列用例 ----
+  \node[uc] (c6) at (9.85,-1.40) {UC-06\\维护牙医资质档案};
+  \node[uc] (c7) at (9.85,-3.00) {UC-07\\维护诊所信息};
+  \node[uc] (c9) at (9.85,-4.60) {UC-09\\生成连锁经营报表};
+  \node[uc] (c8) at (9.85,-6.20) {UC-08\\统计牙医季度业绩};
+
+  % ---- 前台接待员 → UC-01 / UC-02（总线 x=2.05）----
+  \draw[assoc] (1.2,-1.40) -- (c1.west);
+  \draw[assoc] (2.05,-1.40) -- (2.05,-3.00) -- (c2.west);
+
+  % ---- 牙医 → UC-03 / UC-04 / UC-05（总线 x=2.70）----
+  \draw[assoc] (1.2,-4.60) -- (c3.west);
+  \draw[assoc] (2.70,-4.60) -- (2.70,-7.80);
+  \draw[assoc] (2.70,-6.20) -- (c4.west);
+  \draw[assoc] (2.70,-7.80) -- (c5.west);
+
+  % ---- 总部管理者 → UC-06/07/09/08（总线 x=11.85）----
+  \draw[assoc] (13.11,-1.40) -- (c6.east);
+  \draw[assoc] (11.85,-1.40) -- (11.85,-6.20);
+  \draw[assoc] (11.85,-3.00) -- (c7.east);
+  \draw[assoc] (11.85,-4.60) -- (c9.east);
+  \draw[assoc] (11.85,-6.20) -- (c8.east);
+
+  % ---- 时间 → UC-08（自下方垂直接入，不穿越 UC-09）----
+  \draw[assoc] (13.11,-8.25) -- (9.85,-8.25) -- (c8.south);
+\end{tikzpicture}
+
+
+\caption{系统用例图：ADC 牙科连锁信息管理系统}
+\end{figure}
+
+\figtag{图 4 说明} 图中共 9 个系统用例。左侧两个执行者就是图 3 中的两类业务工人——业务工人“前台接待员”“牙医”在需求层面被映射为系统执行者，因为他们就是与系统直接交互的外部实例；右侧的总部管理者来自图 3 的“总部管理者”生命线。注意“时间”作为主执行者驱动 UC-08：它提供的是“到季度末汇总业绩”的价值，表示的是业务上的时间节点，而不是系统内部的定时器组件。UC-02、UC-03、UC-04 构成本系统的核心价值链（预约 $\rightarrow$ 治疗 $\rightarrow$ 结算），下一节给出完整规约。
+
+\subsection{系统用例清单}
+
+\begin{table}[H]
+\centering
+\caption{系统用例清单}
+\begin{tabularx}{\linewidth}{@{}L{1.3cm}L{3.4cm}L{2.9cm}X L{1.3cm}@{}}
+\toprule
+\textbf{\textcolor{adcblue!92}{编号}} & \textbf{\textcolor{adcblue!92}{用例}} & \textbf{\textcolor{adcblue!92}{主执行者}} & \textbf{\textcolor{adcblue!92}{简述}} & \textbf{\textcolor{adcblue!92}{优先级}} \\
+\midrule
+UC-01 & 登记患者档案 & 前台接待员 & 记录姓名、出生日期、账单地址、电话、邮箱与紧急联系人，并逐项登记过敏症 & 高 \\
+UC-02 & 受理预约 $\bigstar$ & 前台接待员 & 按牙医资质与可约时段匹配，生成预约并记录就诊备注 & 高 \\
+UC-03 & 记录就诊与治疗 $\bigstar$ & 牙医 & 记录主诉与过敏史，录入治疗项目、消耗标准单位与单位价格 & 高 \\
+UC-04 & 生成结算单 $\bigstar$ & 牙医 & 按标准单位价格生成逐行明细与小计，出具结算单与总价 & 高 \\
+UC-05 & 记录就诊状态 & 牙医 & 将预约标记为已就诊或未到诊，支撑取消率统计 & 中 \\
+UC-06 & 维护牙医资质档案 & 总部管理者 & 登记牙医个人信息、执业资质及其在多家诊所的轮转 & 中 \\
+UC-07 & 维护诊所信息 & 总部管理者 & 登记诊所地址、主管姓名、电话、邮箱与办公面积 & 中 \\
+UC-08 & 统计牙医季度业绩 & 总部管理者、时间 & 按季度汇总每位牙医的收入、成本与运营费用，支撑激励基金分配 & 中 \\
+UC-09 & 生成连锁经营报表 & 总部管理者 & 按诊所与时段输出取消率、治疗量与收入报表 & 低 \\
+\bottomrule
+\end{tabularx}
+\vspace{2pt}
+\par\noindent{\small\color{adcgray}注：标 $\bigstar$ 为本系统的核心用例，下一节给出完整用例规约。}
+\end{table}
+
+\subsection{用例规约}
+
+以下三份规约分别对应价值链的入口（受理预约）、核心业务（记录就诊与治疗）、以及价值兑现（生成结算单）。规约写法遵循“涉及界面组件的细节不进需求”的原则：主语只用执行者名称或“系统”。
+
+\begin{ucbox}{UC-02\quad 受理预约}
+\small
+\begin{tabularx}{\linewidth}{@{}L{2.2cm}X@{}}
+\toprule
+\textbf{\textcolor{adcblue!92}{执行者}} & 前台接待员（主执行者） \\
+\textbf{前置条件} & 前台接待员已登录系统并选定了接诊诊所；患者已通过电话提出就诊需求 \\
+\textbf{后置条件} & 系统保存了一条预约记录（含患者、诊所、日期、时间、接诊牙医与就诊备注），状态为“待就诊”；若为新患者，其档案与过敏症已完成登记 \\
+\bottomrule
+\end{tabularx}
+
+\vspace{4pt}
+\textbf{涉众利益}
+\begin{itemize}[leftmargin=1.4em,topsep=2pt,itemsep=1pt]
+  \item 患者——希望尽快约到合适的时间与牙医，希望过敏史与就诊需求被准确记录，不希望白跑一趟。
+  \item 前台接待员——希望在一次通话内完成档案查询、牙医匹配与预约登记，不用在多个表格间来回切换。
+  \item 牙医——希望预约信息准确（时间、治疗需求、过敏史），不希望被安排在自己不具备资质的治疗上。
+  \item 诊所主管——希望诊室与牙医时间被合理占用，不出现空档或撞车。
+  \item 总部管理者——希望每一次预约都进入统一记录，从而能够按诊所统计取消率与治疗量。
+  \item 老板（老大）——希望预约口径在全连锁统一，使扩张后新增诊所也能即刻对齐管理标准。
+\end{itemize}
+
+\vspace{2pt}
+\textbf{基本路径}
+\begin{enumerate}[leftmargin=1.9em,topsep=2pt,itemsep=1pt]
+  \item 前台接待员提交患者的姓名与电话号码，请求调取患者档案；
+  \item 系统反馈患者档案，包括既往就诊记录与过敏症清单；
+  \item 前台接待员提交期望就诊的日期、时间与治疗需求；
+  \item 系统反馈满足资质要求且该时段可接诊的牙医列表及其所在诊所；
+  \item 前台接待员选定牙医与时段，提交预约；
+  \item 系统校验该牙医时段未被占用、该诊所该时段可用；
+  \item 系统生成预约记录（状态为“待就诊”）；
+  \item 前台接待员向患者复述预约时间、诊所地址与接诊牙医，通话结束。
+\end{enumerate}
+
+\vspace{2pt}
+\textbf{扩展}
+\begin{itemize}[leftmargin=1.4em,topsep=2pt,itemsep=1pt]
+  \item \textbf{1a. 患者档案不存在（新患者）：} 1a1 系统提示该患者为新患者；1a2 前台接待员执行“登记患者档案”用例（UC-01）；1a3 返回基本路径 2。
+  \item \textbf{2a. 患者有已知过敏症：} 2a1 系统高亮显示过敏源清单；2a2 前台接待员向患者确认过敏源是否有变化；2a3 返回基本路径 3。
+  \item \textbf{3a. 患者就诊需求超出 ADC 现有资质范围：} 3a1 系统提示无匹配资质；3a2 前台接待员说明情况并建议转诊。
+  \item \textbf{4a. 无满足条件的牙医可接诊：} 4a1 系统反馈邻近时段或邻近诊所的可选方案；4a2 前台接待员与患者协商调整时间或诊所；4a3 返回基本路径 3。
+  \item \textbf{5a. 该牙医时段在提交瞬间已被他人占用：} 5a1 系统提示时段冲突并列出新的可约时段；5a2 返回基本路径 4。
+\end{itemize}
+
+\vspace{2pt}
+\textbf{字段列表}
+\begin{itemize}[leftmargin=1.4em,topsep=2pt,itemsep=1pt]
+  \item 预约 = 预约编号 + 患者 + 诊所 + 就诊日期 + 就诊时间 + 接诊牙医 + \{治疗需求\}* + [就诊备注] + 预约状态 + 受理时间
+  \item 患者档案 = 患者账号 + 姓名 + 出生日期 + 账单地址 + 电话号码 + [电子邮箱] + 紧急联系人姓名 + 紧急联系人电话 + \{过敏症\}*
+  \item 过敏症 = 过敏源名称 + [严重程度] + [备注]
+  \item 预约状态 = \{待就诊 \textbar\ 已就诊 \textbar\ 未到诊 \textbar\ 已取消\}
+\end{itemize}
+
+\vspace{2pt}
+\textbf{业务规则}
+\begin{enumerate}[leftmargin=1.9em,topsep=2pt,itemsep=1pt]
+  \item 预约编号在全连锁内唯一，规则为“诊所代码 + 日期 + 四位流水号”。
+  \item 每位牙医在同一时段（以 30 分钟为一个时段）最多只能有一个有效预约。
+  \item 同一患者的未到诊记录数达到约定阈值时，系统在受理新预约时给出提示，由前台接待员决定是否要求预缴费用。
+  \item 患者的过敏症必须逐项登记，不得只记“有过敏”；过敏症记录一经登记不得被后续就诊覆盖。
+  \item 牙医只能被安排在其持有相应资质的治疗需求上；无资质匹配时系统不给出该牙医。
+  \item 预约状态只由“记录就诊状态”用例（UC-05）从“待就诊”改为“已就诊”或“未到诊”。
+\end{enumerate}
+
+\vspace{2pt}
+\textbf{质量需求}
+\begin{itemize}[leftmargin=1.4em,topsep=2pt,itemsep=1pt]
+  \item 提交患者标识后，系统应在 2 秒内反馈患者档案（在连锁患者总数不超过 5 万人的条件下）。
+  \item 支持 15 家诊所合计 120 名前台与牙医同时在线，不出现同一牙医时段被重复预约的数据冲突。
+  \item 一名熟练前台接待员完成一次标准预约受理的人机交互不超过 6 次。
+\end{itemize}
+
+\vspace{2pt}
+\textbf{设计约束}
+\begin{itemize}[leftmargin=1.4em,topsep=2pt,itemsep=1pt]
+  \item 患者档案在全连锁范围内共享，同一患者在不同诊所就诊不得产生重复档案，以患者账号或电话号码为识别键。
+  \item 系统须支持新增诊所快速接入，新诊所开业即可使用与成熟诊所一致的预约口径。
+\end{itemize}
+\end{ucbox}
+
+\begin{ucbox}{UC-03\quad 记录就诊与治疗}
+\small
+\begin{tabularx}{\linewidth}{@{}L{2.2cm}X@{}}
+\toprule
+\textbf{\textcolor{adcblue!92}{执行者}} & 牙医（主执行者） \\
+\textbf{前置条件} & 患者已按预约到诊；该患者存在状态为“待就诊”的当日预约 \\
+\textbf{后置条件} & 系统保存了一条就诊记录（含主诉、就诊备注与本次就诊的全部治疗行）；每个治疗行记录了消耗的标准单位与单位价格；预约状态已更新为“已就诊” \\
+\bottomrule
+\end{tabularx}
+
+\vspace{4pt}
+\textbf{涉众利益}
+\begin{itemize}[leftmargin=1.4em,topsep=2pt,itemsep=1pt]
+  \item 患者——希望治疗过程被完整准确记录，希望每项治疗的单位与价格可核对，不愿被多计费。
+  \item 牙医——希望治疗项目与单位的录入尽量简短，不占用诊椅时间，也不希望事后补记遗漏。
+  \item 前台接待员——希望结算时能直接取到治疗数据，不用再向牙医口头确认项目与金额。
+  \item 总部管理者——希望各诊所采用统一的项目与单位口径，使各地治疗标准可比较。
+  \item 老板（老大）——希望借助统一口径的治疗数据判断各地治疗标准是否一致，并跟踪牙医产能。
+\end{itemize}
+
+\vspace{2pt}
+\textbf{基本路径}
+\begin{enumerate}[leftmargin=1.9em,topsep=2pt,itemsep=1pt]
+  \item 牙医提交当日预约列表或患者标识，请求调取就诊信息；
+  \item 系统反馈该患者的档案、过敏症清单与既往治疗记录；
+  \item 牙医录入主诉与就诊备注；
+  \item 牙医实施治疗；
+  \item 牙医为本次就诊录入选定的治疗项目及其消耗的标准单位与单位价格；
+  \item 系统校验所选治疗项目属于标准治疗目录；
+  \item 牙医确认本次就诊的治疗清单；
+  \item 系统保存就诊记录；该笔预约的状态由“记录就诊状态”用例（UC-05）统一改为“已就诊”，以保证预约状态的唯一改写入口；
+  \item 系统提示可生成结算单，牙医据此执行“生成结算单”用例（UC-04）。
+\end{enumerate}
+
+\vspace{2pt}
+\textbf{扩展}
+\begin{itemize}[leftmargin=1.4em,topsep=2pt,itemsep=1pt]
+  \item \textbf{2a. 患者提出新的症状或需求：} 2a1 牙医在就诊备注中追加记录；2a2 返回基本路径 3。
+  \item \textbf{3a. 患者过敏症与拟施治疗存在冲突：} 3a1 系统给出过敏冲突警示；3a2 牙医更换材料或治疗方式后再行记录。
+  \item \textbf{5a. 就诊期间追加治疗（如 X 光、洗牙、抛光）：} 5a1 牙医向患者说明并取得同意；5a2 牙医在治疗清单中追加相应项目与单位；5a3 返回基本路径 6。
+  \item \textbf{6a. 所选治疗项目不在标准治疗目录中：} 6a1 系统提示该项目未定义；6a2 牙医改选标准项目，或提交新增项目的申请由总部管理者审核。
+  \item \textbf{8a. 患者中途终止治疗：} 8a1 牙医记录实际完成的治疗项目；8a2 系统按实际完成项目计算费用并返回基本路径 8。
+\end{itemize}
+
+\vspace{2pt}
+\textbf{字段列表}
+\begin{itemize}[leftmargin=1.4em,topsep=2pt,itemsep=1pt]
+  \item 就诊记录 = 就诊编号 + 预约 + 患者 + 接诊牙医 + 诊所 + 就诊日期 + 主诉 + [就诊备注] + \{治疗行\}* + 就诊状态
+  \item 治疗行 = 治疗项目 + 施用单位数量 + 单位价格 + [牙位／部位] + [执行牙医]
+  \item 治疗项目 = 项目名称 + 类别\{检查 \textbar\ 洁治 \textbar\ 修复 \textbar\ 种植 \textbar\ 其他\} + 标准单位定义 + 标准单位价格
+\end{itemize}
+
+\vspace{2pt}
+\textbf{业务规则}
+\begin{enumerate}[leftmargin=1.9em,topsep=2pt,itemsep=1pt]
+  \item 一次就诊可包含一项或多项治疗；治疗行必须在牙医确认后才计入本次就诊。
+  \item 治疗行的单位价格默认取标准治疗目录中的标准单位价格；特殊情况下的调整必须留痕并经诊所主管授权。
+  \item 就诊记录一经生成，其治疗行不得物理删除；更正须以追加红冲记录的方式留痕。
+  \item 治疗项目的消耗单位必须采用该项目定义的标准单位，不得以“各”等模糊单位代替。
+  \item 患者过敏症在就诊界面必须可见；若治疗材料与过敏症冲突，牙医不得在未另行确认的情况下继续录入该项治疗。
+\end{enumerate}
+
+\vspace{2pt}
+\textbf{质量需求}
+\begin{itemize}[leftmargin=1.4em,topsep=2pt,itemsep=1pt]
+  \item 治疗行录入与校验在 1 秒内完成，牙医录入一项治疗的人机交互不超过 4 次。
+  \item 就诊记录提交后立即可被结算环节读取，不出现“治疗已录入但结算取不到数据”的情况。
+  \item 就诊记录永久保留，可供事后追溯与医疗纠纷处理。
+\end{itemize}
+
+\vspace{2pt}
+\textbf{设计约束}
+\begin{itemize}[leftmargin=1.4em,topsep=2pt,itemsep=1pt]
+  \item 治疗项目与标准单位价格由总部统一维护，各诊所只能选用、不能自行定义。
+  \item 系统须记录每次就诊的操作留痕（操作人、时间），以便追溯。
+\end{itemize}
+\end{ucbox}
+
+\begin{ucbox}{UC-04\quad 生成结算单}
+\small
+\begin{tabularx}{\linewidth}{@{}L{2.2cm}X@{}}
+\toprule
+\textbf{\textcolor{adcblue!92}{执行者}} & 牙医（主执行者）；支付／保险机构（辅执行者） \\
+\textbf{前置条件} & 该次就诊存在状态为“已就诊”的就诊记录，且治疗行已由牙医确认；诊所已维护结算单抬头与开票信息 \\
+\textbf{后置条件} & 系统生成一张结算单（含全连锁唯一单号）；结算单包含每项治疗的逐行明细（治疗名称、施用单位数量、单位价格、小计）与总价，状态为“已出具” \\
+\bottomrule
+\end{tabularx}
+
+\vspace{4pt}
+\textbf{涉众利益}
+\begin{itemize}[leftmargin=1.4em,topsep=2pt,itemsep=1pt]
+  \item 患者——希望结算单逐项清楚、金额一次算对，并支持保险报销所需的明细。
+  \item 牙医——希望不用手算、手写结算单，治疗数据能自动带出。
+  \item 前台接待员——希望收费时能直接调用结算单，不用再核对纸质单据。
+  \item 总部管理者——希望 15 家诊所采用统一的结算单格式与编号规则，便于汇总与财务稽核。
+  \item 老板（老大）——希望标准化开票支撑收入统计与激励基金的计算。
+  \item 支付／保险机构——希望交易信息完整、可追溯。
+\end{itemize}
+
+\vspace{2pt}
+\textbf{基本路径}
+\begin{enumerate}[leftmargin=1.9em,topsep=2pt,itemsep=1pt]
+  \item 牙医为已完成就诊的患者请求生成结算单；
+  \item 系统读取该次就诊的治疗行，按“单位数量 $\times$ 标准单位价格”计算每行小计；
+  \item 系统汇总各行小计得到结算单总价，并生成全连锁唯一的结算单号；
+  \item 系统向牙医展示结算单的逐行明细与总价；
+  \item 牙医确认结算单；
+  \item 系统保存结算单（状态为“已出具”），并将治疗行与结算单建立关联；
+  \item 系统向患者出具结算单，并按需通过支付／保险机构接口发起收款或理赔；
+  \item 支付／保险机构反馈处理结果，系统更新结算单状态。
+\end{enumerate}
+
+\vspace{2pt}
+\textbf{扩展}
+\begin{itemize}[leftmargin=1.4em,topsep=2pt,itemsep=1pt]
+  \item \textbf{2a. 存在经授权调整过单位价格的治疗行：} 2a1 系统在明细中标注调整后价格与原价的差异；2a2 返回基本路径 3。
+  \item \textbf{4a. 患者对某项治疗有异议：} 4a1 牙医核对就诊记录与治疗行；4a2 如确需更正，按业务规则生成红冲记录；4a3 系统重新计算并返回基本路径 3。
+  \item \textbf{5a. 牙医发现明细有误：} 5a1 返回基本路径 1，重新读取治疗行。
+  \item \textbf{7a. 患者要求改为保险结算：} 7a1 系统向保险机构提交理赔所需明细；7a2 保险机构反馈可报销金额与自付金额；7a3 系统据此拆分结算单并继续执行基本路径 8。
+  \item \textbf{8a. 收款失败：} 8a1 系统将结算单置为“待支付”并反馈失败原因；8a2 前台接待员改用其他支付方式重试；8a3 返回基本路径 8。
+\end{itemize}
+
+\vspace{2pt}
+\textbf{字段列表}
+\begin{itemize}[leftmargin=1.4em,topsep=2pt,itemsep=1pt]
+  \item 结算单 = 结算单号 + 就诊记录 + 患者 + 诊所 + 开单日期 + \{结算行\}* + 总价 + 结算单状态
+  \item 结算行 = 治疗名称 + 施用单位数量 + 单位价格 + 小计
+  \item 结算单状态 = \{待出具 \textbar\ 已出具 \textbar\ 待支付 \textbar\ 已结算\}
+\end{itemize}
+
+\vspace{2pt}
+\textbf{业务规则}
+\begin{enumerate}[leftmargin=1.9em,topsep=2pt,itemsep=1pt]
+  \item 结算单号在全连锁内唯一；每张结算单关联且仅关联一次就诊。
+  \item 结算单总价恒等于各结算行小计之和；结算行的单位价格来源于就诊记录的治疗行，不得手工另行输入。
+  \item 结算单经确认后不可直接修改；更正须通过红冲并重新开单的方式留痕。
+  \item 保险理赔金额与患者自付金额必须分别列示，不得合并为一笔。
+  \item 存在未结算结算单的患者再次就诊时，系统应在受理与就诊环节给出提示，由诊所主管决定是否放行。
+\end{enumerate}
+
+\vspace{2pt}
+\textbf{质量需求}
+\begin{itemize}[leftmargin=1.4em,topsep=2pt,itemsep=1pt]
+  \item 结算单生成在 1 秒内完成，且金额计算无舍入误差（以分为最小单位）。
+  \item 结算单可按连锁、按诊所、按时段检索，支撑总部月度与季度汇总。
+  \item 生成的结算单可打印或导出为 PDF，格式在各诊所保持一致。
+\end{itemize}
+
+\vspace{2pt}
+\textbf{设计约束}
+\begin{itemize}[leftmargin=1.4em,topsep=2pt,itemsep=1pt]
+  \item 结算单格式与编号规则由总部统一规定，各诊所不得自行变更。
+  \item 结算必须通过支付／保险机构接口完成，系统不得保存患者银行卡信息。
+  \item 结算单须带保险理赔所需的项目编码，以便与保险机构对接。
+\end{itemize}
+\end{ucbox}
+
+% ============================ 五、分析 ============================
+\section{分析：从类图到序列图与状态机图}
+
+需求阶段回答的是“系统要为执行者做什么”，分析阶段回答的是“系统内部由哪些对象协作来完成”。本阶段交付三个工件：\textbf{分析类图}给出系统的静态结构，\textbf{分析序列图}把每个用例的责任摊到具体的类上，\textbf{分析状态机图}则把一个类在所有用例中的状态迁移一次讲全——三者分别对应全局静态、局部动态、零件动态三个视角。
+
+\subsection{分析类图的三种构造型}
+
+分析类图由三种构造型（stereotype）构成，各自的职责与识别规则如下表。
+
+\begin{table}[H]
+\centering
+\caption{分析类图的三种构造型及其识别规则}
+\begin{tabularx}{\linewidth}{@{}L{1.8cm}L{4.0cm}L{3.9cm}X@{}}
+\toprule
+\textbf{\textcolor{adcblue!92}{构造型}} & \textbf{\textcolor{adcblue!92}{职责}} & \textbf{\textcolor{adcblue!92}{识别规则}} & \textbf{\textcolor{adcblue!92}{本案对应}} \\
+\midrule
+边界类 & 系统的输入、输出与简单过滤 & 每一个有接口的外部系统映射一个边界类 & 柜面终端界面、总部报表界面、支付网关接口、保险理赔接口、患者通知接口 \\
+控制类 & 控制用例流程，为实体类分配责任 & 每一个系统用例映射一个控制类 & 9 个系统用例对应 9 个控制类，如“受理预约控制” \\
+实体类 & 封装核心域的逻辑与数据，是本阶段重点 & 用例与实体类是多对多关系 & 患者、牙医、诊所、预约、就诊、治疗项目、就诊治疗明细、结算单、资质、过敏症等 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+本报告的落点是\textbf{实体类}：只有实体类才携带核心域的数据结构，第 六 章的数据库设计完全由它推导而来；边界类与控制类在同一张类图中用构造型标注体现，保证交付的是完整的分析类图，而非残缺的实体类堆砌。
+
+\subsection{实体类的命名自检}
+
+实体类应当来自领域中的真实概念，而不是把“某某信息、某某记录、某某数据表”这类人造词当类。下表是本报告逐项自检的结果。
+
+\begin{table}[H]
+\centering
+\caption{实体类命名自检：从“不当做法”到“本案做法”}
+\begin{tabularx}{\linewidth}{@{}L{4.3cm}L{4.3cm}X@{}}
+\toprule
+\textbf{\textcolor{adcblue!92}{不当做法（应避免）}} & \textbf{\textcolor{adcblue!92}{本案的做法}} & \textbf{\textcolor{adcblue!92}{理由}} \\
+\midrule
+在类名后加“类” & 直接叫患者、就诊、诊所 & 类是建模元素，名称里不需要再重复说明 \\
+加“信息 / 记录 / 数据 / 表 / 库”等后缀 & 患者信息$\rightarrow$患者；就诊记录$\rightarrow$就诊；诊所数据$\rightarrow$诊所 & 这些后缀是人造出来的包装，不是领域概念本身 \\
+给类加“标识属性” & 标识由主键“患者编号”承担 & 标识是存储层的关注点，不进入概念属性 \\
+加一个笼统名为“状态”的属性 & 就诊.就诊状态，取值明确为“已预约 / 已就诊 / 已取消”，并另设“是否取消”布尔标记 & 状态必须落到具体取值，否则模型无法验证，取消率也无从统计 \\
+把设计细节塞进类 & 只保留用例规约中出现过的概念 & 类图描述问题域，不描述实现手段 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+需要单独说明的是\textbf{“结算单”}：它不属于被禁止的名词后缀，而是牙科业务中真实存在的票据名称（与“发票”同类），案例原文也以“标准化开单”作为管理诉求，因此保留该命名。
+\subsection{实体类清单与概念属性}
+
+实体类的属性来自用例规约中的“字段列表”，抽取原则是：只保留用例中被真正读写的领域概念，不引入实现手段。下表共识别出 16 个实体类。
+
+{\small
+\begin{longtable}{@{}L{2.7cm}L{6.3cm}L{6.3cm}@{}}
+\caption{实体类清单及其概念属性}\\
+\toprule
+\textbf{\textcolor{adcblue!92}{实体类}} & \textbf{\textcolor{adcblue!92}{概念属性}} & \textbf{\textcolor{adcblue!92}{主要来源用例}} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{\textcolor{adcblue!92}{实体类}} & \textbf{\textcolor{adcblue!92}{概念属性}} & \textbf{\textcolor{adcblue!92}{主要来源用例}} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+患者 Patient & 患者编号、姓名、性别、出生日期、联系电话、电子邮箱、通讯地址、建档日期、备注 & UC-01、UC-02、UC-03 \\
+过敏症 Allergen & 过敏症编号、过敏症名称、类别、说明 & UC-03（过敏史核对） \\
+患者过敏记录 PatientAllergy & 记录编号、严重程度、反应描述、首次记录日期 & UC-03 \\
+员工 Employee & 员工编号、姓名、性别、联系电话、入职日期、在职状态 & UC-02、UC-06、UC-08 \\
+牙医 Dentist & 执业证书编号、专业方向、职称 & UC-02、UC-03、UC-08 \\
+前台接待员 Receptionist & 岗位等级、可受理的业务范围 & UC-01、UC-02、UC-04 \\
+总部管理者 Administrator & 职务名称、分管范围 & UC-06、UC-07、UC-08、UC-09 \\
+诊所 Clinic & 诊所编号、诊所名称、所在城市、详细地址、联系电话、开业日期、诊椅数量、营业状态 & UC-02、UC-07、UC-09 \\
+牙医执业点 DentistClinic & 执业点编号、排班说明、是否主要执业点 & UC-02、UC-06 \\
+资质 Qualification & 资质编号、资质名称、颁发机构、有效期至 & UC-06 \\
+牙医资质 DentistQualification & 资质记录编号、取得日期、证书编号 & UC-06、UC-08 \\
+预约 Appointment & 预约编号、预约时间、预计时长、预约渠道、预约状态、登记时间、取消原因 & UC-02、UC-05 \\
+就诊 Visit & 就诊编号、到诊时间、结束时间、主诉、诊断结论、就诊状态、是否取消、记录时间 & UC-03、UC-05 \\
+治疗项目 TreatmentItem & 治疗项目编号、项目名称、标准单位、单位价格、是否启用、项目说明 & UC-03、UC-09 \\
+就诊治疗明细 VisitTreatment & 明细编号、执行数量、消耗标准单位、单项小计、执行时间 & UC-03、UC-04 \\
+结算单 Statement & 结算单编号、开单日期、治疗费用、材料费用、折扣金额、应付总额、支付方式、支付状态、支付时间、保险理赔编号 & UC-04 \\
+\end{longtable}
+}
+
+\subsection{类之间的关系与多重性}
+
+多重性是本章最关键的一步：它决定第 六 章里外键落在哪张表上。下表中凡标 “0..*” 的一方，都是将来承载外键的一方。
+
+{\small
+\begin{longtable}{@{}L{5.2cm}L{1.8cm}L{8.3cm}@{}}
+\caption{类之间的关系与多重性}\\
+\toprule
+\textbf{\textcolor{adcblue!92}{关系}} & \textbf{\textcolor{adcblue!92}{多重性}} & \textbf{\textcolor{adcblue!92}{依据与说明}} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{\textcolor{adcblue!92}{关系}} & \textbf{\textcolor{adcblue!92}{多重性}} & \textbf{\textcolor{adcblue!92}{依据与说明}} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+员工 $\rightarrow$ 牙医（泛化） & 1 : 1 & 牙医是一名员工，共享姓名、联系电话等共同属性，只特化出执业特征 \\
+员工 $\rightarrow$ 前台接待员（泛化） & 1 : 1 & 前台接待员同属员工，特化出岗位等级 \\
+员工 $\rightarrow$ 总部管理者（泛化） & 1 : 1 & 总部管理者同属员工，特化出分管范围 \\
+牙医 $\rightarrow$ 牙医执业点 & 1 : 0..* & 案例中牙医可在多家诊所轮岗，故一人可有多个执业点 \\
+诊所 $\rightarrow$ 牙医执业点 & 1 : 0..* & 一家诊所可接纳多名牙医，且同一牙医在不同诊所的排班不同 \\
+诊所 $\rightarrow$ 前台接待员 & 1 : 0..* & 前台接待员归属某一家诊所 \\
+患者 $\rightarrow$ 预约 & 1 : 0..* & 一名患者可多次预约 \\
+牙医 $\rightarrow$ 预约 & 1 : 0..* & 一名牙医可被多次预约 \\
+诊所 $\rightarrow$ 预约 & 1 : 0..* & 预约发生在具体诊所 \\
+预约 $\rightarrow$ 就诊 & 1 : 0..1 & 预约到诊后转化为一次就诊；爽约的预约不产生就诊，这正是取消率的统计口径 \\
+患者 $\rightarrow$ 就诊 & 1 : 0..* & 一名患者可多次就诊 \\
+牙医 $\rightarrow$ 就诊 & 1 : 0..* & 一次就诊由一位牙医负责 \\
+诊所 $\rightarrow$ 就诊 & 1 : 0..* & 就诊发生在具体诊所 \\
+就诊 $\rightarrow$ 就诊治疗明细 & 1 : 1..* & 组合关系：明细随就诊产生、随就诊消亡，一次就诊至少执行一项治疗 \\
+治疗项目 $\rightarrow$ 就诊治疗明细 & 1 : 0..* & 同一治疗项目可被反复执行，项目本身独立于就诊存在 \\
+就诊 $\rightarrow$ 结算单 & 1 : 0..1 & 一次就诊最多开出一张结算单 \\
+患者 $\rightarrow$ 患者过敏记录 & 1 : 0..* & 一名患者可登记多项过敏症（案例强调过敏史必须逐项可查） \\
+过敏症 $\rightarrow$ 患者过敏记录 & 1 : 0..* & 同一过敏症可发生在多名患者身上 \\
+牙医 $\rightarrow$ 牙医资质 & 1 : 0..* & 一名牙医可持有多项资质证书 \\
+资质 $\rightarrow$ 牙医资质 & 1 : 0..* & 同一资质可由多名牙医持有 \\
+\end{longtable}
+}
+
+上表中有四处是\textbf{多对多}关联（牙医与诊所、患者与过敏症、牙医与资质、就诊与治疗项目）。按课件的映射规则，多对多不能直接落成外键，必须引入关联表——它们分别对应第 六 章的牙医执业点、患者过敏记录、牙医资质、就诊治疗明细四张表。
+\subsection{分析类图（一）：患者与诊疗域}
+
+16 个实体类按域拆成两幅图，以便看清结构与连线。图 5 是患者与诊疗域。
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+  \clsbox{pat}{(1.6,-1.0)}{3.0}{患者\\{\tiny\mdseries Patient}}{患者编号\\姓名\\性别\\出生日期\\联系电话\\电子邮箱\\通讯地址\\建档日期\\备注}
+  \clsbox{pall}{(5.6,-1.0)}{3.0}{患者过敏记录\\{\tiny\mdseries PatientAllergy}}{记录编号\\严重程度\\反应描述\\首次记录日期}
+  \clsbox{alg}{(9.6,-1.0)}{3.0}{过敏症\\{\tiny\mdseries Allergen}}{过敏症编号\\过敏症名称\\类别\\说明}
+
+  \clsbox{appt}{(1.6,-6.0)}{3.0}{预约\\{\tiny\mdseries Appointment}}{预约编号\\预约时间\\预计时长\\预约渠道\\预约状态\\登记时间\\取消原因}
+  \clsbox{vst}{(5.6,-6.0)}{3.0}{就诊\\{\tiny\mdseries Visit}}{就诊编号\\到诊时间\\结束时间\\主诉\\诊断结论\\就诊状态\\是否取消\\记录时间}
+  \clsbox{vtr}{(9.6,-6.0)}{3.0}{就诊治疗明细\\{\tiny\mdseries VisitTreatment}}{明细编号\\执行数量\\消耗标准单位\\单项小计\\执行时间}
+
+  \clsbox{tit}{(9.6,-11.0)}{3.0}{治疗项目\\{\tiny\mdseries TreatmentItem}}{治疗项目编号\\项目名称\\标准单位\\单位价格\\是否启用\\项目说明}
+  \clsbox{stm}{(5.6,-11.0)}{3.0}{结算单\\{\tiny\mdseries Statement}}{结算单编号\\开单日期\\治疗费用\\材料费用\\折扣金额\\应付总额\\支付方式\\支付状态\\支付时间\\保险理赔编号}
+
+  % ---- 患者与过敏史：多对多，落成“患者过敏记录”关联类 ----
+  \relh{pat.east}{pall.west}{1}{0..*}
+  \relh{pall.east}{alg.west}{0..*}{1}
+
+  % ---- 患者 → 预约 / 就诊 ----
+  \relv{patb.south}{appt.north}{1}{0..*}
+  \draw[assoc] (patb.south) -- (1.6,-5.40) -- (5.6,-5.40) -- (vst.north)
+    node[pos=0.86,right=0.6pt,font=\tiny,text=black!75,fill=white,inner sep=0.7pt] {0..*};
+
+  % ---- 预约 → 就诊（到诊转化；爽约则不产生就诊）----
+  \relh{appt.east}{vst.west}{1}{0..1}
+
+  % ---- 就诊 → 就诊治疗明细（组合：菱形在“整体”一端）----
+  \draw[comp] (vtr.west) -- (vst.east)
+    node[pos=0.70,above=1.2pt,font=\tiny,text=black!75,fill=white,inner sep=0.7pt] {1}
+    node[pos=0.30,below=1.2pt,font=\tiny,text=black!75,fill=white,inner sep=0.7pt] {1..*};
+
+  % ---- 治疗项目 → 就诊治疗明细 ----
+  \relv{tit.north}{vtrb.south}{1}{0..*}
+
+  % ---- 就诊 → 结算单 ----
+  \relv{vstb.south}{stm.north}{1}{0..1}
+\end{tikzpicture}
+\caption{分析类图（患者与诊疗域）}
+\end{figure}
+
+\figtag{图 5 说明} 八个实体类覆盖了从建档、预约、就诊到结算的完整链条。三处结构值得注意：其一，\textbf{患者与过敏症是多对多}，因此中间必须有“患者过敏记录”这个关联类，且它自带严重程度、首次记录日期等属性——这正是案例“过敏史逐项可查”的落点；其二，\textbf{预约与就诊相互独立}，预约到诊后转化为就诊，爽约的预约不产生就诊，取消率因此有了统计口径，这是第 二 章愿景指标的结构支撑；其三，\textbf{就诊与就诊治疗明细是组合关系}（1 : 1..*），明细不能脱离就诊单独存在，而治疗项目是独立的字典类，与明细构成 1 : 0..*。此外，预约与就诊还各关联到牙医与诊所，该部分属于组织人员域，见图 6。
+\subsection{分析类图（二）：组织与人员域}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+  \clsbox{emp}{(1.6,-1.0)}{3.0}{员工\\{\tiny\mdseries Employee}}{员工编号\\姓名\\性别\\联系电话\\入职日期\\在职状态}
+  \clsbox{den}{(5.6,-1.0)}{3.0}{牙医\\{\tiny\mdseries Dentist}}{执业证书编号\\专业方向\\职称}
+  \clsbox{adm}{(9.6,-1.0)}{3.0}{总部管理者\\{\tiny\mdseries Administrator}}{职务名称\\分管范围}
+  \clsbox{qua}{(13.6,-1.0)}{3.0}{资质\\{\tiny\mdseries Qualification}}{资质编号\\资质名称\\颁发机构\\有效期至}
+
+  \clsbox{cln}{(1.6,-6.4)}{3.0}{诊所\\{\tiny\mdseries Clinic}}{诊所编号\\诊所名称\\所在城市\\详细地址\\联系电话\\开业日期\\诊椅数量\\营业状态}
+  \clsbox{rcp}{(5.6,-6.4)}{3.0}{前台接待员\\{\tiny\mdseries Receptionist}}{岗位等级\\可受理业务范围}
+  \clsbox{dqu}{(9.6,-6.4)}{3.0}{牙医资质\\{\tiny\mdseries DentistQualification}}{资质记录编号\\取得日期\\证书编号}
+  \clsbox{dcl}{(13.6,-6.4)}{3.0}{牙医执业点\\{\tiny\mdseries DentistClinic}}{执业点编号\\排班说明\\是否主要执业点}
+
+  % ---- 泛化：牙医、总部管理者、前台接待员都是员工 ----
+  \draw[gen] (den.west) -- (emp.east);
+  \draw[gen] (adm.north) -- (9.6,-0.15) -- (2.1,-0.15) -- (emp.north);
+  \draw[gen] (rcp.north) -- (5.6,-4.60) -- (1.6,-4.60) -- (empb.south);
+
+  % ---- 诊所 → 前台接待员 ----
+  \relh{cln.east}{rcp.west}{1}{0..*}
+
+  % ---- 诊所 → 牙医执业点（自下方绕行）----
+  \draw[assoc] (clnb.south) -- (1.6,-10.45) -- (13.6,-10.45) -- (dclb.south)
+    node[pos=0.03,right=0.6pt,font=\tiny,text=black!75,fill=white,inner sep=0.7pt] {1}
+    node[pos=0.97,left=0.6pt,font=\tiny,text=black!75,fill=white,inner sep=0.7pt] {0..*};
+
+  % ---- 牙医 → 牙医执业点 ----
+  \draw[assoc] (denb.east) -- (8.0,-2.05) -- (8.0,-4.40) -- (12.8,-4.40) -- (12.8,-6.4)
+    node[pos=0.06,above=0.6pt,font=\tiny,text=black!75,fill=white,inner sep=0.7pt] {1}
+    node[pos=0.94,left=0.6pt,font=\tiny,text=black!75,fill=white,inner sep=0.7pt] {0..*};
+
+  % ---- 资质 → 牙医资质 ----
+  \draw[assoc] (quab.south) -- (13.6,-5.00) -- (9.6,-5.00) -- (dqu.north)
+    node[pos=0.06,left=0.6pt,font=\tiny,text=black!75,fill=white,inner sep=0.7pt] {1}
+    node[pos=0.94,left=0.6pt,font=\tiny,text=black!75,fill=white,inner sep=0.7pt] {0..*};
+
+  % ---- 牙医 → 牙医资质 ----
+  \draw[assoc] (denb.east) -- (7.6,-2.05) -- (7.6,-7.45) -- (dqub.west)
+    node[pos=0.10,right=0.6pt,font=\tiny,text=black!75,fill=white,inner sep=0.7pt] {1}
+    node[pos=0.92,left=0.6pt,font=\tiny,text=black!75,fill=white,inner sep=0.7pt] {0..*};
+\end{tikzpicture}
+\caption{分析类图（组织与人员域）}
+\end{figure}
+
+\figtag{图 6 说明} 这幅图承担两件事。第一是\textbf{泛化}：牙医、前台接待员、总部管理者都是员工，姓名、联系电话、入职日期等共同属性上提到“员工”这一超类，三类人员只保留各自特化的属性——案例中“牙医与前台是两类不同的人、共享部分人事信息”正是这个结构。第二是\textbf{多对多的落点}：牙医可以在多家诊所轮岗，故牙医与诊所之间用“牙医执业点”作为关联类，它还携带排班说明这一业务属性；牙医可持有多项资质，故用“牙医资质”作为关联类记录取得日期与证书编号。这两处关联类，与前图的“患者过敏记录”一样，都是多对多关联在分析阶段的正式表达，第 六 章的关联表就是它们的直接投影。
+\subsection{分析类图（三）：边界类与控制类}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+  % ---- 列标题 ----
+  \node[font=\scriptsize\bfseries,text=adcblue] at (2.2,0.30) {«边界类»};
+  \node[font=\scriptsize\bfseries,text=adcblue] at (7.9,0.30) {«控制类»（每个用例一个）};
+  \node[font=\scriptsize\bfseries,text=adcblue] at (13.0,0.30) {«实体类»};
+
+  % ---- 边界类 ----
+  \node[bnd] (b1) at (2.2,-3.60) {柜面终端界面};
+  \node[bnd] (b2) at (2.2,-4.80) {总部报表界面};
+  \node[bnd] (b3) at (2.2,-6.00) {支付网关接口};
+  \node[bnd] (b4) at (2.2,-7.20) {保险理赔接口};
+  \node[bnd] (b5) at (2.2,-8.40) {患者通知接口};
+
+  % ---- 控制类 ----
+  \node[ctrl] (k1) at (7.9,-2.10) {登记患者档案控制};
+  \node[ctrl] (k2) at (7.9,-3.30) {受理预约控制};
+  \node[ctrl] (k3) at (7.9,-4.50) {记录就诊与治疗控制};
+  \node[ctrl] (k4) at (7.9,-5.70) {生成结算单控制};
+  \node[ctrl] (k5) at (7.9,-6.90) {记录就诊状态控制};
+  \node[ctrl] (k6) at (7.9,-8.10) {维护牙医资质档案控制};
+  \node[ctrl] (k7) at (7.9,-9.30) {维护诊所信息控制};
+  \node[ctrl] (k8) at (7.9,-10.50) {统计牙医季度业绩控制};
+  \node[ctrl] (k9) at (7.9,-11.70) {生成连锁经营报表控制};
+
+  % ---- 实体类（整体作为一栏）----
+  \draw[adcblue!45,line width=0.6pt,fill=adclight!30,rounded corners=3pt]
+    (11.40,-4.60) rectangle (14.60,-8.60);
+  \node[font=\tiny,align=center,text=black!82] at (13.0,-6.60)
+    {患者 · 过敏症\\患者过敏记录\\员工 · 牙医\\前台接待员 · 总部管理者\\诊所 · 牙医执业点\\资质 · 牙医资质\\预约 · 就诊\\治疗项目\\就诊治疗明细 · 结算单};
+
+  % ---- 边界类 → 控制类 ；控制类 → 实体类 ----
+  \draw[robo] (4.20,-5.40) -- (5.50,-5.40);
+  \node[font=\tiny,text=adcgray,align=center] at (4.85,-5.95) {触发};
+  \draw[robo] (10.25,-6.90) -- (11.35,-6.90);
+  \node[font=\tiny,text=adcgray,align=center] at (10.80,-7.45) {读写};
+\end{tikzpicture}
+\caption{分析类图（边界类、控制类与实体类的关系）}
+\end{figure}
+
+\figtag{图 7 说明} 边界类负责输入输出，是外部执行者与系统之间的隔离带——支付网关、保险理赔、患者通知三个接口类分别对应三个真实的外部系统，柜面终端界面与总部报表界面则对应两类人机交互入口。控制类按“一个系统用例一个控制类”的规则一一对应，由它编排流程、向实体类分配责任；实体类承担数据与核心域逻辑，图 5 与图 6 展开的就是它的内部结构。这条“边界 $\rightarrow$ 控制 $\rightarrow$ 实体”的链路，正是接着进入设计阶段的抓手。
+
+\begin{table}[H]
+\centering
+\caption{系统用例、控制类与主要实体类的对应}
+{\small
+\begin{tabularx}{\linewidth}{@{}L{1.6cm}L{3.4cm}L{4.5cm}X@{}}
+\toprule
+\textbf{\textcolor{adcblue!92}{用例}} & \textbf{\textcolor{adcblue!92}{控制类}} & \textbf{\textcolor{adcblue!92}{主要协作的实体类}} & \textbf{\textcolor{adcblue!92}{说明}} \\
+\midrule
+UC-01 & 登记患者档案控制 & 患者、患者过敏记录 & 建档时同步登记过敏史 \\
+UC-02 & 受理预约控制 & 预约、患者、牙医、诊所 & 按资质与执业诊所匹配可接诊牙医 \\
+UC-03 & 记录就诊与治疗控制 & 就诊、就诊治疗明细、治疗项目、过敏症 & 按标准单位记录消耗并试算费用 \\
+UC-04 & 生成结算单控制 & 结算单、就诊、就诊治疗明细 & 汇总明细生成标准化结算单 \\
+UC-05 & 记录就诊状态控制 & 就诊、预约 & 标记“已就诊 / 已取消”，供取消率统计 \\
+UC-06 & 维护牙医资质档案控制 & 牙医、资质、牙医资质 & 资质有效期是排班的匹配条件 \\
+UC-07 & 维护诊所信息控制 & 诊所、员工 & 新诊所开业即接入统一口径 \\
+UC-08 & 统计牙医季度业绩控制 & 牙医、就诊、结算单 & 支撑净利润 10\% 激励基金核算 \\
+UC-09 & 生成连锁经营报表控制 & 诊所、就诊、结算单、治疗项目 & 跨诊所统一经营视图 \\
+\bottomrule
+\end{tabularx}
+}
+\end{table}
+% ============================ 5.8 分析序列图 ============================
+\subsection{分析序列图（一）：UC-02 受理预约}
+
+分析类图回答“系统里有什么”，分析序列图回答“这些类怎么协作”。它与第三章的业务序列图不是同一种东西：业务序列图的研究对象是组织内各系统（人肉系统与电脑系统），最小颗粒是系统；分析序列图的研究对象是系统内部的类，最小颗粒是软件类。它的作用是把用例规约里的每一条职责，精确地分配到边界类、控制类与实体类上——这正是从“系统做什么”过渡到“系统里有什么”的那一步。
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm]
+  \def\xA{0}\def\xB{2.9}\def\xC{5.8}\def\xD{8.6}\def\xE{11.3}\def\xF{13.9}
+  \lifeline{\xA}{前台接待员\\«系统执行者»}{-14.55}{A}
+  \lifeline{\xB}{预约登记界面\\«边界类»}{-14.55}{B}
+  \lifeline{\xC}{受理预约控制\\«控制类»}{-14.55}{C}
+  \lifeline{\xD}{患者\\«实体类»}{-14.55}{D}
+  \lifeline{\xE}{牙医\\«实体类»}{-14.55}{E}
+  \lifeline{\xF}{预约\\«实体类»}{-14.55}{F}
+
+  \msg{\xA}{-1.25}{\xB}{提交姓名与电话}
+  \msg{\xB}{-2.11}{\xC}{查找患者（姓名, 电话）}
+  \msg{\xC}{-2.97}{\xD}{按姓名与电话匹配档案}
+  \msg[ret]{\xD}{-3.83}{\xC}{返回档案与过敏清单}
+  \msg[ret]{\xC}{-4.69}{\xB}{显示档案、过敏与既往记录}
+  \msg{\xA}{-5.55}{\xB}{提交日期、时段与需求}
+  \msg{\xB}{-6.41}{\xC}{查询可约牙医}
+  \msg{\xC}{-7.27}{\xE}{按资质与执业点筛选}
+  \msg[ret]{\xE}{-8.13}{\xC}{返回可接诊牙医列表}
+  \msg[ret]{\xC}{-8.99}{\xB}{返回可约时段与牙医}
+  \msg{\xA}{-9.85}{\xB}{选定牙医与时段}
+  \msg{\xB}{-10.71}{\xC}{创建预约}
+  \msg{\xC}{-11.57}{\xF}{校验同时段唯一}
+  \msg[ret]{\xF}{-12.43}{\xC}{无冲突}
+  \msg{\xC}{-13.29}{\xF}{创建预约（待就诊）}
+  \msg[ret]{\xC}{-14.15}{\xB}{返回预约编号与摘要}
+
+  \node[font=\scriptsize,text=adcgray,anchor=west] at (0.05,-15.05)
+    {实线＝调用，虚线＝返回；生命线自左至右为执行者、边界类、控制类、实体类。};
+\end{tikzpicture}
+\caption{UC-02 受理预约的分析序列图}
+\end{figure}
+
+\figtag{图 8 说明} 图中第 1--5 条消息对应 UC-02 基本路径第 1--2 步，第 6--10 条对应第 3--4 步，第 11--16 条对应第 5--7 步。三点值得注意：其一，界面类只做输入采集与展示，患者匹配、牙医筛选、时段唯一性校验全部由控制类转交实体类完成，界面不承载任何业务判断；其二，\textbf{“校验同时段唯一”由预约实体自己负责}，而不是控制类里的一个 if 判断——这条规则属于预约这个概念本身，放在实体类里才能在“改期”“补录”等其它入口复用；其三，第 16 条返回的预约编号由实体生成后逐层回传，控制类不自行编造编号。
+
+% ============================ 5.9 分析序列图（二） ============================
+\subsection{分析序列图（二）：UC-03 记录就诊与治疗}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm]
+  \def\xA{0}\def\xB{2.9}\def\xC{5.8}\def\xD{8.6}\def\xE{11.3}\def\xF{13.9}
+  \lifeline{\xA}{牙医\\«系统执行者»}{-13.7}{A}
+  \lifeline{\xB}{就诊界面\\«边界类»}{-13.7}{B}
+  \lifeline{\xC}{记录就诊与治疗控制\\«控制类»}{-13.7}{C}
+  \lifeline{\xD}{患者\\«实体类»}{-13.7}{D}
+  \lifeline{\xE}{治疗项目\\«实体类»}{-13.7}{E}
+  \lifeline{\xF}{就诊\\«实体类»}{-13.7}{F}
+
+  \msg{\xA}{-1.25}{\xB}{选择当日预约或患者标识}
+  \msg{\xB}{-2.11}{\xC}{调取就诊信息（预约编号）}
+  \msg{\xC}{-2.97}{\xD}{读取档案与过敏症}
+  \msg[ret]{\xD}{-3.83}{\xC}{返回过敏清单与既往治疗}
+  \msg[ret]{\xC}{-4.69}{\xB}{显示档案与过敏提示}
+  \msg{\xA}{-5.55}{\xB}{录入主诉与就诊备注}
+  \msg{\xB}{-6.41}{\xC}{创建就诊（预约, 患者, 主诉）}
+  \msg{\xC}{-7.27}{\xF}{生成就诊（进行中）}
+  \msg{\xA}{-8.13}{\xB}{选择治疗项目与单位数量}
+  \msg{\xB}{-8.99}{\xC}{追加治疗行（项目, 单位）}
+  \msg{\xC}{-9.85}{\xE}{取标准单位与单价}
+  \msg[ret]{\xE}{-10.71}{\xC}{返回标准单位与项目单价}
+  \msg{\xC}{-11.57}{\xF}{追加明细并计算小计}
+  \msg{\xA}{-12.43}{\xB}{确认治疗清单}
+  \msg{\xC}{-13.29}{\xF}{标记完成（已完成）}
+  \msg[ret]{\xC}{-14.15}{\xB}{提示可生成结算单}
+
+  \node[font=\scriptsize,text=adcgray,anchor=west] at (0.05,-14.65)
+    {单价由治疗项目实体给出，不由界面传入；就诊状态由就诊实体自身维护。};
+\end{tikzpicture}
+\caption{UC-03 记录就诊与治疗的分析序列图}
+\end{figure}
+
+\figtag{图 9 说明} 第 1--5 条消息对应基本路径第 1--2 步，第 6--8 条对应第 3 步，第 9--13 条对应第 5--7 步，第 14--16 条对应第 8--9 步。这里体现两条设计判断：\textbf{单价只能来自治疗项目实体}（第 11--12 条），界面即使显示价格也只是只读回显，从根上堵住“前台改价”；\textbf{就诊状态由就诊实体自己迁移}（进行中 $\rightarrow$ 已完成，第 15 条），控制类只下达“完成”这个意图，不直接改字段。治疗行一旦确认即不可物理删除，图 9 的追加语义与 UC-03 的“红冲留痕”规则一致。
+
+% ============================ 5.10 分析状态机图 ============================
+\subsection{分析状态机图：预约与结算单}
+
+类图是全局、静态的视角，序列图是局部（单个用例）、动态的视角，状态机图则是单个零件（类）、动态的视角——它把一个类在所有用例中可能经历的状态与迁移一次讲全。ADC 案例里状态最多、最容易被漏写的是\textbf{预约}与\textbf{结算单}。
+
+\begin{figure}[H]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[x=1cm,y=1cm,
+  state/.style={rounded rectangle,draw=adcblue!70,line width=0.6pt,fill=adclight!55,
+                minimum width=2.25cm,minimum height=0.72cm,align=center,font=\scriptsize,inner sep=2pt},
+  flow/.style={draw=adcblue!70,line width=0.6pt,-{Stealth[length=4pt]}}]
+
+  % ================= 预约 =================
+  \draw[adcblue!22,fill=adclight!20,rounded corners=5pt] (-0.55,0.65) rectangle (7.75,-4.15);
+  \node[font=\small\bfseries,text=adcblue] at (3.6,0.30) {预约 Appointment};
+  \draw[fill=black] (-0.05,-1.00) circle (0.07);
+  \node[state] (a1) at (1.55,-1.00) {待就诊};
+  \node[state] (a2) at (5.75,-0.20) {已就诊};
+  \node[state] (a3) at (5.75,-1.75) {未到诊};
+  \node[state] (a4) at (5.75,-3.35) {已取消};
+
+  \draw[flow] (-0.05,-1.00) -- (a1.west);
+  \draw[flow] (a1.east) to[out=18,in=180] node[above=1pt,font=\tiny]{到诊并记录治疗} (a2.west);
+  \draw[flow] (a1.east) to[out=0,in=180] node[above=1pt,font=\tiny]{到诊时间为空} (a3.west);
+  \draw[flow] (a1.south) to[out=-70,in=165] node[below=1pt,font=\tiny,pos=0.55]{就诊前取消} (a4.west);
+
+  % ================= 结算单 =================
+  \draw[adcblue!22,fill=adclight!20,rounded corners=5pt] (8.15,0.65) rectangle (16.05,-4.15);
+  \node[font=\small\bfseries,text=adcblue] at (12.1,0.30) {结算单 Statement};
+  \draw[fill=black] (8.60,-0.90) circle (0.07);
+  \node[state] (s1) at (10.05,-0.90) {待出具};
+  \node[state] (s2) at (13.90,-0.90) {已出具};
+  \node[state] (s3) at (13.90,-2.40) {待支付};
+  \node[state] (s4) at (10.05,-2.40) {已结算};
+
+  \draw[flow] (8.60,-0.90) -- (s1.west);
+  \draw[flow] (s1.east) -- node[above=1pt,font=\tiny]{确认明细} (s2.west);
+  \draw[flow] (s2.south) -- node[right=1pt,font=\tiny]{提交收款} (s3.north);
+  \draw[flow] (s3.west) -- node[above=1pt,font=\tiny]{收款成功} (s4.east);
+
+  % 收款失败的自环
+  \draw[flow] (13.25,-2.40) -- (13.25,-3.05) -- (14.55,-3.05) -- (14.55,-2.40);
+  \node[font=\tiny,text=black!75,anchor=west] at (14.62,-2.72) {收款失败重试};
+
+  \node[font=\tiny,text=adcgray,anchor=west,align=left] at (-0.55,-4.55)
+    {● 初始状态。状态名与数据库状态字段取值一一对应；迁移只由实体类操作触发，界面不得直接赋状态。};
+\end{tikzpicture}}
+\caption{预约与结算单的分析状态机图}
+\end{figure}
+
+\figtag{图 10 说明} 左侧四个状态与 UC-02 字段列表里的“预约状态”取值完全一致，右侧四个状态与 UC-04 字段列表里的“结算单状态”一致——状态机不是另起一套术语，而是把这些取值的合法迁移画出来。三条规则由此变得可执行：“未到诊”只能由“到诊时间为空且预约时段已过”触发；“已取消”只在就诊前允许；“已结算”是终态，要更正只能红冲并重新开单，不能把已结算改回待支付。
+
+\begin{table}[H]
+\centering
+\caption{状态迁移与用例、操作的对应}
+{\small
+\begin{tabularx}{\linewidth}{@{}L{1.5cm}L{1.7cm}L{2.3cm}L{3.4cm}L{1.6cm}X@{}}
+\toprule
+\textbf{\textcolor{adcblue!92}{类}} & \textbf{\textcolor{adcblue!92}{当前状态}} & \textbf{\textcolor{adcblue!92}{事件}} & \textbf{\textcolor{adcblue!92}{守卫条件}} & \textbf{\textcolor{adcblue!92}{目标状态}} & \textbf{\textcolor{adcblue!92}{触发用例}} \\
+\midrule
+预约 & 待就诊 & 就诊记录完成 & 存在对应的就诊记录 & 已就诊 & UC-05（UC-03 结束后调用） \\
+预约 & 待就诊 & 预约时段已过且无就诊记录 & 当前时间 $>$ 预约时间 + 宽限 & 未到诊 & UC-05（按日批量） \\
+预约 & 待就诊 & 患者或诊所取消 & 当前时间 $<$ 预约时间 & 已取消 & UC-02、UC-05 \\
+结算单 & 待出具 & 牙医确认治疗清单 & 明细非空且单价已确定 & 已出具 & UC-04 \\
+结算单 & 已出具 & 提交收款 & 支付方式已选 & 待支付 & UC-04 \\
+结算单 & 待支付 & 收款成功 & 支付网关返回成功 & 已结算 & UC-04 \\
+结算单 & 待支付 & 收款失败 & 支付网关返回失败 & 待支付 & UC-04（记录失败原因） \\
+\bottomrule
+\end{tabularx}
+}
+\end{table}
+
+上表把图 10 的每条弧落到具体的用例与守卫条件上。守卫条件这一列是设计阶段要写进代码的判断，例如“当前时间 $<$ 预约时间”才允许取消，正是案例里“取消率”统计口径能否成立的前提——如果允许事后把“未到诊”改成“已取消”，取消率就失去了意义。
+
+% ============================ 六、设计 ============================
+\section{设计：数据层、业务层与表示层}
+
+分析类图描述的是对象世界，而拟开发系统最终要落在可运行的软件上。设计阶段按课程的三个动作推进：先\textbf{建立数据层}（把实体类图映射成表结构），再\textbf{精化业务层}（给类补上领域操作、把状态机落到代码），最后\textbf{精化表示层}（确定边界类承担的输入输出与窗体导航）。映射规则并非自创，而是课程给出的标准对应关系，本报告逐条落实。
+
+\subsection{类图到表的映射规则}
+
+\begin{table}[H]
+\centering
+\caption{对象概念与关系数据库概念的对应}
+\begin{tabularx}{\linewidth}{@{}L{3.3cm}L{5.2cm}X@{}}
+\toprule
+\textbf{\textcolor{adcblue!92}{对象概念}} & \textbf{\textcolor{adcblue!92}{关系数据库概念}} & \textbf{\textcolor{adcblue!92}{本案的落实}} \\
+\midrule
+类 & 表 & 16 个实体类映射为 16 张表 \\
+属性 & 列 & 概念属性映射为列，不含操作 \\
+对象 & 行 & 一名患者、一次就诊各是一行 \\
+泛化 & 超类主键作为所有子类的主键 & 牙医、前台接待员、总部管理者三张表的主键都是 employee.employee\_id \\
+关联 & 外键放在\textbf{非 1 方} & 例如患者与预约是 1 : 0..*，外键 patient\_id 放进 appointment \\
+组合 & 外键放在非 1 方，且\textbf{不为空} & 就诊治疗明细的 visit\_id 设为 NOT NULL，明细不能脱离就诊存在 \\
+多对多关联 & 独立的\textbf{关联表}（中间表） & 四处多对多分别落成患者过敏记录、牙医执业点、牙医资质、就诊治疗明细四张表 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+主键遵循课件提出的两条要求：\textbf{唯一且恒定}，并且\textbf{把领域字段与主键分开}。因此本案所有表都采用代理主键（patient\_id、clinic\_id 这类编号），而不拿身份证号、邮箱、手机号等可能变化的领域字段充当主键。
+
+\subsection{每条关联的外键落点}
+
+下表是“转化”这一步最直接的证据：第五章识别出的每一条关联，都在这里指定了外键落在哪张表的哪一列上。
+
+{\small
+\begin{longtable}{@{}L{4.4cm}L{1.7cm}L{9.2cm}@{}}
+\caption{每条关联的外键落点}\\
+\toprule
+\textbf{\textcolor{adcblue!92}{关联}} & \textbf{\textcolor{adcblue!92}{多重性}} & \textbf{\textcolor{adcblue!92}{外键落点}} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{\textcolor{adcblue!92}{关联}} & \textbf{\textcolor{adcblue!92}{多重性}} & \textbf{\textcolor{adcblue!92}{外键落点}} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+员工 $\rightarrow$ 牙医（泛化） & 1 : 1 & dentist.employee\_id 既是主键又是外键，指向 employee.employee\_id \\
+员工 $\rightarrow$ 前台接待员（泛化） & 1 : 1 & receptionist.employee\_id 同为主键与外键 \\
+员工 $\rightarrow$ 总部管理者（泛化） & 1 : 1 & administrator.employee\_id 同为主键与外键 \\
+诊所 $\rightarrow$ 前台接待员 & 1 : 0..* & receptionist.clinic\_id $\Rightarrow$ clinic.clinic\_id \\
+牙医 $\rightarrow$ 牙医执业点 & 1 : 0..* & dentist\_clinic.employee\_id $\Rightarrow$ dentist.employee\_id \\
+诊所 $\rightarrow$ 牙医执业点 & 1 : 0..* & dentist\_clinic.clinic\_id $\Rightarrow$ clinic.clinic\_id \\
+患者 $\rightarrow$ 预约 & 1 : 0..* & appointment.patient\_id $\Rightarrow$ patient.patient\_id \\
+牙医 $\rightarrow$ 预约 & 1 : 0..* & appointment.employee\_id $\Rightarrow$ dentist.employee\_id \\
+诊所 $\rightarrow$ 预约 & 1 : 0..* & appointment.clinic\_id $\Rightarrow$ clinic.clinic\_id \\
+预约 $\rightarrow$ 就诊 & 1 : 0..1 & visit.appointment\_id $\Rightarrow$ appointment.appointment\_id（加唯一约束） \\
+患者 $\rightarrow$ 就诊 & 1 : 0..* & visit.patient\_id $\Rightarrow$ patient.patient\_id \\
+牙医 $\rightarrow$ 就诊 & 1 : 0..* & visit.employee\_id $\Rightarrow$ dentist.employee\_id \\
+诊所 $\rightarrow$ 就诊 & 1 : 0..* & visit.clinic\_id $\Rightarrow$ clinic.clinic\_id \\
+就诊 $\rightarrow$ 就诊治疗明细（组合） & 1 : 1..* & visit\_treatment.visit\_id $\Rightarrow$ visit.visit\_id（NOT NULL） \\
+治疗项目 $\rightarrow$ 就诊治疗明细 & 1 : 0..* & visit\_treatment.item\_id $\Rightarrow$ treatment\_item.item\_id \\
+就诊 $\rightarrow$ 结算单 & 1 : 0..1 & statement.visit\_id $\Rightarrow$ visit.visit\_id（加唯一约束） \\
+患者 $\leftrightarrow$ 过敏症（多对多） & 多 : 多 & 关联表 patient\_allergy：patient\_id、allergen\_id 双外键，另带 severity、reaction、first\_record\_date \\
+牙医 $\leftrightarrow$ 诊所（多对多） & 多 : 多 & 关联表 dentist\_clinic：employee\_id、clinic\_id 双外键，另带 schedule\_note、is\_primary \\
+牙医 $\leftrightarrow$ 资质（多对多） & 多 : 多 & 关联表 dentist\_qualification：employee\_id、qualification\_id 双外键，另带 obtain\_date、certificate\_no \\
+\end{longtable}
+}
+
+表中前三行的“超类主键作为子类主键”是泛化特有的映射方式，它保证了牙医、前台接待员、总部管理者不会出现与员工不一致的身份；后三行则说明：多对多关联一旦带上业务属性（严重程度、排班说明、取得日期），落成的关联表同时也就是第五章识别出的那个关联类——分析与设计在这里严丝合缝地对上了。
+
+\subsection{数据库表清单：16 张表的主键与外键}
+
+前两节讲的是“怎么映射”，这一节把映射结果一次列全。全系统共 \textbf{16 张表}，分为四组：\textbf{6 张基础表}（无外键）、\textbf{3 张人员子类表}（主键即外键）、\textbf{4 张关联表}（多对多的产物）、\textbf{3 张业务主表}（预约、就诊、结算单）。下面按两个领域分列，与图 11、图 12 一一对应。
+
+{\footnotesize
+\begin{longtable}{@{}L{0.9cm}L{3.2cm}L{2.6cm}L{5.2cm}L{2.6cm}@{}}
+\caption{组织与人员域 8 张表的主键与外键}\label{tab:tbl-org}\\
+\toprule
+\textbf{\textcolor{adcblue!92}{序}} & \textbf{\textcolor{adcblue!92}{表（中文 / 英文）}} & \textbf{\textcolor{adcblue!92}{主键}} & \textbf{\textcolor{adcblue!92}{外键（$\rightarrow$ 被引用表）}} & \textbf{\textcolor{adcblue!92}{存在理由}} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{\textcolor{adcblue!92}{序}} & \textbf{\textcolor{adcblue!92}{表（中文 / 英文）}} & \textbf{\textcolor{adcblue!92}{主键}} & \textbf{\textcolor{adcblue!92}{外键（$\rightarrow$ 被引用表）}} & \textbf{\textcolor{adcblue!92}{存在理由}} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+1 & 员工 employee & employee\_id & 无 & 三类人员共用 \\
+2 & 牙医 dentist & employee\_id & employee\_id $\rightarrow$ employee & 执业证书与职称 \\
+3 & 前台接待员 receptionist & employee\_id & employee\_id $\rightarrow$ employee；clinic\_id $\rightarrow$ clinic & 所属诊所与范围 \\
+4 & 总部管理者 administrator & employee\_id & employee\_id $\rightarrow$ employee & 职务与分管范围 \\
+5 & 诊所 clinic & clinic\_id & 无 & 门店档案与状态 \\
+6 & 牙医执业点 dentist\_clinic & dc\_id & employee\_id $\rightarrow$ dentist；clinic\_id $\rightarrow$ clinic & 轮岗与排班 \\
+7 & 资质 qualification & qualification\_id & 无 & 资质目录 \\
+8 & 牙医资质 dentist\_qualification & dq\_id & employee\_id $\rightarrow$ dentist；qualification\_id $\rightarrow$ qualification & 取证与有效期 \\
+\end{longtable}
+}
+
+患者与诊疗域是业务主线所在：预约、就诊、治疗明细、结算单四张表串起一次完整的诊疗过程，患者过敏记录与治疗项目则分别为它提供安全校验与计价依据。
+
+{\footnotesize
+\begin{longtable}{@{}L{0.9cm}L{3.2cm}L{2.6cm}L{5.2cm}L{2.6cm}@{}}
+\caption{患者与诊疗域 8 张表的主键与外键}\label{tab:tbl-pat}\\
+\toprule
+\textbf{\textcolor{adcblue!92}{序}} & \textbf{\textcolor{adcblue!92}{表（中文 / 英文）}} & \textbf{\textcolor{adcblue!92}{主键}} & \textbf{\textcolor{adcblue!92}{外键（$\rightarrow$ 被引用表）}} & \textbf{\textcolor{adcblue!92}{存在理由}} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{\textcolor{adcblue!92}{序}} & \textbf{\textcolor{adcblue!92}{表（中文 / 英文）}} & \textbf{\textcolor{adcblue!92}{主键}} & \textbf{\textcolor{adcblue!92}{外键（$\rightarrow$ 被引用表）}} & \textbf{\textcolor{adcblue!92}{存在理由}} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+1 & 患者 patient & patient\_id & 无 & 患者主档 \\
+2 & 过敏症 allergen & allergen\_id & 无 & 过敏原目录 \\
+3 & 患者过敏记录 patient\_allergy & record\_id & patient\_id $\rightarrow$ patient；allergen\_id $\rightarrow$ allergen & 严重程度与反应 \\
+4 & 预约 appointment & appointment\_id & patient\_id $\rightarrow$ patient；employee\_id $\rightarrow$ dentist；clinic\_id $\rightarrow$ clinic & 取消率统计载体 \\
+5 & 就诊 visit & visit\_id & appointment\_id $\rightarrow$ appointment（唯一）；其余三个外键同第 4 行 & 到诊与诊断 \\
+6 & 治疗项目 treatment\_item & item\_id & 无 & 单价目录 \\
+7 & 就诊治疗明细 visit\_treatment & vt\_id & visit\_id $\rightarrow$ visit（NOT NULL）；item\_id $\rightarrow$ treatment\_item & 组合关系落点 \\
+8 & 结算单 statement & statement\_id & visit\_id $\rightarrow$ visit（唯一）；patient\_id $\rightarrow$ patient & 财务凭证 \\
+\end{longtable}
+}
+
+两份清单可以直接当建库的核对表用，四条键规则可以一句话记住：
+
+\begin{itemize}[leftmargin=1.8em,topsep=3pt,itemsep=2pt]
+  \item \textbf{主键一律用代理键}，且都满足“唯一且恒定”；身份证号、手机号、邮箱这些会变的领域字段只作普通列，不承担主键职责。
+  \item \textbf{泛化看人员三表}：牙医、前台接待员、总部管理者的主键与员工表是同名列、同取值，既是主键又是外键，所以一名牙医不可能挂在一个“不存在的员工编号”上。
+  \item \textbf{关联看四张关联表}：牙医执业点、牙医资质、患者过敏记录、就诊治疗明细各持两条外键，并各自带上业务列（排班说明、取得日期、严重程度、执行数量）——多对多关系在这里既被拆开，又不丢语义。
+  \item \textbf{一对一靠唯一约束}：预约与就诊、就诊与结算单都是 1 : 0..1，落成外键后在非 1 方加 UNIQUE，而不是让两张表互相引用。
+\end{itemize}
+
+这套结构只有 16 张表，却同时满足了三件事：任何一次取消都能按诊所、按牙医、按时间切片统计；任何一笔收费都能回溯到具体就诊、具体治疗项目与单价；任何一名牙医的资质都能在开单前被程序校验。
+
+\subsection{数据库图表（一）：组织与人员域}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+  \tblbox{emp}{(1.6,-1.0)}{3.0}{员工\\{\tiny\mdseries employee}}{\pk{员工编号}\\姓名\\性别\\联系电话\\入职日期\\在职状态}
+  \tblbox{den}{(5.6,-1.0)}{3.0}{牙医\\{\tiny\mdseries dentist}}{\pk{员工编号}（兼外键）\\执业证书编号\\专业方向\\职称}
+  \tblbox{adm}{(9.6,-1.0)}{3.0}{总部管理者\\{\tiny\mdseries administrator}}{\pk{员工编号}（兼外键）\\职务名称\\分管范围}
+  \tblbox{qua}{(13.6,-1.0)}{3.0}{资质\\{\tiny\mdseries qualification}}{\pk{资质编号}\\资质名称\\颁发机构\\有效期至}
+
+  \tblbox{cln}{(1.6,-7.0)}{3.0}{诊所\\{\tiny\mdseries clinic}}{\pk{诊所编号}\\诊所名称\\所在城市\\详细地址\\联系电话\\开业日期\\诊椅数量\\营业状态}
+  \tblbox{rcp}{(5.6,-7.0)}{3.0}{前台接待员\\{\tiny\mdseries receptionist}}{\pk{员工编号}（兼外键）\\\fk{诊所编号}\\岗位等级\\可受理业务范围}
+  \tblbox{dqu}{(9.6,-7.0)}{3.0}{牙医资质\\{\tiny\mdseries dentist\_qualification}}{\pk{资质记录编号}\\\fk{员工编号}\\\fk{资质编号}\\取得日期\\证书编号}
+  \tblbox{dcl}{(13.6,-7.0)}{3.0}{牙医执业点\\{\tiny\mdseries dentist\_clinic}}{\pk{执业点编号}\\\fk{员工编号}\\\fk{诊所编号}\\排班说明\\是否主要执业点}
+
+  % ---- 子类主键 = 超类主键 ----
+  \draw[fk] (den.west) -- (emp.east);
+  \draw[fk] (adm.north) -- (9.6,-0.15) -- (2.1,-0.15) -- (emp.north);
+  \draw[fk] (rcp.north) -- (5.6,-4.60) -- (1.6,-4.60) -- (empb.south);
+
+  % ---- 诊所 ← 前台接待员 / 牙医执业点 ----
+  \draw[fk] (rcp.west) -- (cln.east);
+  \draw[fk] (dclb.south) -- (13.6,-11.00) -- (1.6,-11.00) -- (clnb.south);
+
+  % ---- 牙医 ← 牙医执业点 / 牙医资质 ----
+  \draw[fk] (12.8,-7.0) -- (12.8,-4.40) -- (8.0,-4.40) -- (8.0,-2.05) -- (denb.east);
+  \draw[fk] (dqub.west) -- (7.6,-8.41) -- (7.6,-3.40) -- (5.6,-3.40) -- (denb.south);
+
+  % ---- 资质 ← 牙医资质 ----
+  \draw[fk] (dqu.north) -- (9.6,-5.00) -- (13.6,-5.00) -- (quab.south);
+
+  % ---- 图例 ----
+  \node[font=\tiny,text=adcgray,anchor=west,align=left] at (0.4,-12.05)
+    {\pk{主键}　　\fk{外键}　　箭头由持外键的表指向被引用的表};
+\end{tikzpicture}
+\caption{数据库图表（组织与人员域）：表、主键与外键}
+\end{figure}
+
+\figtag{图 11 说明} 这是图 6 的直接投影。三张人员表的\textbf{主键就是员工表的主键}，这正是“泛化$\rightarrow$超类主键作为所有子类主键”那条规则的落地方式；前台接待员表的诊所编号、牙医执业点表的员工编号与诊所编号、牙医资质表的员工编号与资质编号，都是“外键放在非 1 方”的结果。特别值得一提的是牙医执业点表：它在数据库里是一张典型的\textbf{关联表}，两张核心表（牙医、诊所）的多对多关系由它承担，同时它还保留了排班说明与是否主要执业点两个业务列——关联表带业务属性，正是案例中“牙医跨诊所轮岗”这一诉求的存储方式。
+\subsection{数据库图表（二）：患者与诊疗域}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.94, transform shape]
+  \tblbox{pat}{(2.6,-1.0)}{3.0}{患者\\{\tiny\mdseries patient}}{\pk{患者编号}\\姓名\\性别\\出生日期\\联系电话\\电子邮箱\\通讯地址\\建档日期\\备注}
+  \tblbox{pall}{(6.6,-1.0)}{3.0}{患者过敏记录\\{\tiny\mdseries patient\_allergy}}{\pk{记录编号}\\\fk{患者编号}\\\fk{过敏症编号}\\严重程度\\反应描述\\首次记录日期}
+  \tblbox{alg}{(10.6,-1.0)}{3.0}{过敏症\\{\tiny\mdseries allergen}}{\pk{过敏症编号}\\过敏症名称\\类别\\说明}
+
+  \tblbox{appt}{(2.6,-7.0)}{3.0}{预约\\{\tiny\mdseries appointment}}{\pk{预约编号}\\\fk{患者编号}\\\fk{员工编号}（牙医）\\\fk{诊所编号}\\预约时间\\预计时长\\预约渠道\\预约状态\\登记时间\\取消原因}
+  \tblbox{vst}{(6.6,-7.0)}{3.0}{就诊\\{\tiny\mdseries visit}}{\pk{就诊编号}\\\fk{预约编号}\\\fk{患者编号}\\\fk{员工编号}（牙医）\\\fk{诊所编号}\\到诊时间\\结束时间\\主诉\\诊断结论\\就诊状态\\是否取消\\记录时间}
+  \tblbox{vtr}{(10.6,-7.0)}{3.0}{就诊治疗明细\\{\tiny\mdseries visit\_treatment}}{\pk{明细编号}\\\fk{就诊编号}\\\fk{治疗项目编号}\\执行数量\\消耗标准单位\\单项小计\\执行时间}
+
+  \tblbox{tmi}{(10.6,-13.0)}{3.0}{治疗项目\\{\tiny\mdseries treatment\_item}}{\pk{治疗项目编号}\\项目名称\\标准单位\\单位价格\\是否启用\\项目说明}
+  \tblbox{stm}{(6.6,-13.0)}{3.0}{结算单\\{\tiny\mdseries statement}}{\pk{结算单编号}\\\fk{就诊编号}\\\fk{患者编号}\\开单日期\\治疗费用\\材料费用\\折扣金额\\应付总额\\支付方式\\支付状态\\支付时间\\保险理赔编号}
+
+  % ---- 患者过敏记录：关联表，双外键 ----
+  \draw[fk] (pall.west) -- (pat.east);
+  \draw[fk] (pall.east) -- (alg.west);
+
+  % ---- 患者 ← 预约 / 就诊 ----
+  \draw[fk] (appt.north) -- (patb.south);
+  \draw[fk] (vst.north) -- (6.6,-5.40) -- (3.0,-5.40) -- (3.0,-4.86);
+
+  % ---- 预约 ← 就诊 ----
+  \draw[fk] (vst.west) -- (appt.east);
+
+  % ---- 就诊 ← 就诊治疗明细 ----
+  \draw[fk] (vtr.west) -- (vst.east);
+
+  % ---- 治疗项目 ← 就诊治疗明细 ----
+  \draw[fk] (tmi.north) -- (vtrb.south);
+
+  % ---- 就诊 ← 结算单 ----
+  \draw[fk] (stm.north) -- (vstb.south);
+
+  % ---- 患者 ← 结算单（跨列绕行）----
+  \draw[fk] (stm.east) -- (8.9,-13.00) -- (8.9,-6.00) -- (3.6,-6.00) -- (3.6,-4.86);
+
+  % ---- 图例 ----
+  \node[font=\tiny,text=adcgray,anchor=north west,align=left] at (1.05,-18.55)
+    {\pk{主键}　　\fk{外键}　　箭头由持外键的表指向被引用的表。\\预约与就诊中的员工编号、诊所编号，其被引用表见图 11。};
+\end{tikzpicture}
+\caption{数据库图表（患者与诊疗域）：表、主键与外键}
+\end{figure}
+
+\figtag{图 12 说明} 这幅图是三张关联表的集中展示。患者过敏记录表是患者与过敏症之间多对多关系的落点，两张外键列 patient\_id、allergen\_id 之外，还带着严重程度与反应描述；就诊治疗明细表是就诊与治疗项目之间多对多关系的落点，它同时受组合规则的约束，visit\_id 必须非空；而预约表、就诊表上的 patient\_id、employee\_id、clinic\_id，则分别来自“患者 $\rightarrow$ 预约/就诊”“牙医 $\rightarrow$ 预约/就诊”“诊所 $\rightarrow$ 预约/就诊”三组一对多关联。整幅图里没有一处冗余列：每一列要么是主键，要么是某个关联的外键，要么是该实体自身携带的领域属性——这正是对象建模正确时映射结果自然满足 3NF 的原因。
+\subsection{数据字典}
+
+两份图表给出了表与表之间的关系，下表进一步给出每张表每一列的数据类型与约束，作为实施阶段的直接依据。
+
+{\small
+\begin{longtable}{@{}L{3.1cm}L{2.7cm}L{3.3cm}L{5.8cm}@{}}
+\caption{数据字典（一）：组织与人员域}\\
+\toprule
+\textbf{\textcolor{adcblue!92}{列名}} & \textbf{\textcolor{adcblue!92}{数据类型}} & \textbf{\textcolor{adcblue!92}{约束}} & \textbf{\textcolor{adcblue!92}{中文含义}} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{\textcolor{adcblue!92}{列名}} & \textbf{\textcolor{adcblue!92}{数据类型}} & \textbf{\textcolor{adcblue!92}{约束}} & \textbf{\textcolor{adcblue!92}{中文含义}} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+\multicolumn{4}{@{}l}{\textbf{\textcolor{adcblue!90}{employee　员工}}}\\
+employee\_id & INT & PK，自增 & 员工编号（代理主键） \\
+full\_name & VARCHAR(30) & NOT NULL & 姓名 \\
+gender & CHAR(1) & NOT NULL & 性别（M / F） \\
+phone & VARCHAR(20) & NOT NULL & 联系电话 \\
+hire\_date & DATE & NOT NULL & 入职日期 \\
+status & VARCHAR(10) & NOT NULL & 在职状态（在职 / 离职） \\
+\multicolumn{4}{@{}l}{\textbf{\textcolor{adcblue!90}{dentist　牙医}}}\\
+employee\_id & INT & PK，FK$\rightarrow$employee & 员工编号（兼作主键与外键） \\
+license\_no & VARCHAR(30) & NOT NULL，UNIQUE & 执业证书编号 \\
+specialty & VARCHAR(30) & & 专业方向 \\
+title & VARCHAR(20) & & 职称 \\
+\multicolumn{4}{@{}l}{\textbf{\textcolor{adcblue!90}{receptionist　前台接待员}}}\\
+employee\_id & INT & PK，FK$\rightarrow$employee & 员工编号（兼作主键与外键） \\
+clinic\_id & INT & FK$\rightarrow$clinic & 所属诊所编号 \\
+grade & VARCHAR(10) & & 岗位等级 \\
+scope & VARCHAR(50) & & 可受理业务范围 \\
+\multicolumn{4}{@{}l}{\textbf{\textcolor{adcblue!90}{administrator　总部管理者}}}\\
+employee\_id & INT & PK，FK$\rightarrow$employee & 员工编号（兼作主键与外键） \\
+position\_name & VARCHAR(30) & NOT NULL & 职务名称 \\
+scope & VARCHAR(50) & & 分管范围 \\
+\multicolumn{4}{@{}l}{\textbf{\textcolor{adcblue!90}{clinic　诊所}}}\\
+clinic\_id & INT & PK，自增 & 诊所编号（代理主键） \\
+clinic\_name & VARCHAR(40) & NOT NULL & 诊所名称 \\
+city & VARCHAR(20) & NOT NULL & 所在城市 \\
+address & VARCHAR(80) & & 详细地址 \\
+phone & VARCHAR(20) & & 联系电话 \\
+open\_date & DATE & & 开业日期 \\
+chair\_count & INT & & 诊椅数量 \\
+status & VARCHAR(10) & NOT NULL & 营业状态（营业 / 筹备） \\
+\multicolumn{4}{@{}l}{\textbf{\textcolor{adcblue!90}{dentist\_clinic　牙医执业点（关联表）}}}\\
+dc\_id & INT & PK，自增 & 执业点编号（代理主键） \\
+employee\_id & INT & FK$\rightarrow$dentist & 牙医编号 \\
+clinic\_id & INT & FK$\rightarrow$clinic & 诊所编号 \\
+schedule\_note & VARCHAR(50) & & 排班说明 \\
+is\_primary & TINYINT & NOT NULL，默认 0 & 是否主要执业点 \\
+employee\_id + clinic\_id & --- & UNIQUE & 同一牙医在同一诊所只允许一条记录 \\
+\multicolumn{4}{@{}l}{\textbf{\textcolor{adcblue!90}{qualification　资质}}}\\
+qualification\_id & INT & PK，自增 & 资质编号（代理主键） \\
+qualification\_name & VARCHAR(40) & NOT NULL & 资质名称 \\
+issuing\_authority & VARCHAR(60) & & 颁发机构 \\
+valid\_until & DATE & & 有效期至 \\
+\multicolumn{4}{@{}l}{\textbf{\textcolor{adcblue!90}{dentist\_qualification　牙医资质（关联表）}}}\\
+dq\_id & INT & PK，自增 & 资质记录编号（代理主键） \\
+employee\_id & INT & FK$\rightarrow$dentist & 牙医编号 \\
+qualification\_id & INT & FK$\rightarrow$qualification & 资质编号 \\
+obtain\_date & DATE & & 取得日期 \\
+certificate\_no & VARCHAR(30) & & 证书编号 \\
+employee\_id + qualification\_id & --- & UNIQUE & 同一项资质对同一牙医只登记一次 \\
+\end{longtable}
+}
+
+{\small
+\begin{longtable}{@{}L{3.1cm}L{2.7cm}L{3.3cm}L{5.8cm}@{}}
+\caption{数据字典（二）：患者与诊疗域}\\
+\toprule
+\textbf{\textcolor{adcblue!92}{列名}} & \textbf{\textcolor{adcblue!92}{数据类型}} & \textbf{\textcolor{adcblue!92}{约束}} & \textbf{\textcolor{adcblue!92}{中文含义}} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{\textcolor{adcblue!92}{列名}} & \textbf{\textcolor{adcblue!92}{数据类型}} & \textbf{\textcolor{adcblue!92}{约束}} & \textbf{\textcolor{adcblue!92}{中文含义}} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+\multicolumn{4}{@{}l}{\textbf{\textcolor{adcblue!90}{patient　患者}}}\\
+patient\_id & INT & PK，自增 & 患者编号（代理主键） \\
+full\_name & VARCHAR(30) & NOT NULL & 姓名 \\
+gender & CHAR(1) & NOT NULL & 性别（M / F） \\
+birth\_date & DATE & & 出生日期 \\
+phone & VARCHAR(20) & NOT NULL & 联系电话 \\
+email & VARCHAR(50) & & 电子邮箱（识别回头客的首选字段） \\
+address & VARCHAR(80) & & 通讯地址 \\
+created\_date & DATE & NOT NULL & 建档日期 \\
+note & VARCHAR(120) & & 备注 \\
+\multicolumn{4}{@{}l}{\textbf{\textcolor{adcblue!90}{allergen　过敏症}}}\\
+allergen\_id & INT & PK，自增 & 过敏症编号（代理主键） \\
+allergen\_name & VARCHAR(30) & NOT NULL，UNIQUE & 过敏症名称 \\
+category & VARCHAR(20) & & 类别（药物 / 食物 / 材料） \\
+description & VARCHAR(120) & & 说明 \\
+\multicolumn{4}{@{}l}{\textbf{\textcolor{adcblue!90}{patient\_allergy　患者过敏记录（关联表）}}}\\
+record\_id & INT & PK，自增 & 记录编号（代理主键） \\
+patient\_id & INT & FK$\rightarrow$patient & 患者编号 \\
+allergen\_id & INT & FK$\rightarrow$allergen & 过敏症编号 \\
+severity & VARCHAR(10) & NOT NULL & 严重程度（轻 / 中 / 重） \\
+reaction & VARCHAR(120) & & 反应描述 \\
+first\_record\_date & DATE & & 首次记录日期 \\
+\multicolumn{4}{@{}l}{\textbf{\textcolor{adcblue!90}{appointment　预约}}}\\
+appointment\_id & INT & PK，自增 & 预约编号（代理主键） \\
+patient\_id & INT & FK$\rightarrow$patient & 患者编号 \\
+employee\_id & INT & FK$\rightarrow$dentist & 接诊牙医编号 \\
+clinic\_id & INT & FK$\rightarrow$clinic & 诊所编号 \\
+appointment\_time & DATETIME & NOT NULL & 预约时间 \\
+expected\_minutes & INT & & 预计时长（分钟） \\
+channel & VARCHAR(10) & & 预约渠道（电话 / 到店 / 线上） \\
+status & VARCHAR(10) & NOT NULL & 预约状态（已预约 / 已到诊 / 已取消） \\
+created\_time & DATETIME & NOT NULL & 登记时间 \\
+cancel\_reason & VARCHAR(60) & & 取消原因 \\
+\multicolumn{4}{@{}l}{\textbf{\textcolor{adcblue!90}{visit　就诊}}}\\
+visit\_id & INT & PK，自增 & 就诊编号（代理主键） \\
+appointment\_id & INT & FK$\rightarrow$appointment，UNIQUE & 来源预约（一次预约最多对应一次就诊） \\
+patient\_id & INT & FK$\rightarrow$patient & 患者编号 \\
+employee\_id & INT & FK$\rightarrow$dentist & 接诊牙医编号 \\
+clinic\_id & INT & FK$\rightarrow$clinic & 诊所编号 \\
+arrival\_time & DATETIME & NOT NULL & 到诊时间 \\
+end\_time & DATETIME & & 结束时间 \\
+chief\_complaint & VARCHAR(200) & & 主诉 \\
+diagnosis & VARCHAR(200) & & 诊断结论 \\
+status & VARCHAR(10) & NOT NULL & 就诊状态（已预约 / 已就诊 / 已取消） \\
+is\_cancelled & TINYINT & NOT NULL，默认 0 & 是否取消（取消率统计标记） \\
+recorded\_time & DATETIME & NOT NULL & 记录时间 \\
+\multicolumn{4}{@{}l}{\textbf{\textcolor{adcblue!90}{treatment\_item　治疗项目}}}\\
+item\_id & INT & PK，自增 & 治疗项目编号（代理主键） \\
+item\_name & VARCHAR(40) & NOT NULL，UNIQUE & 项目名称 \\
+standard\_unit & DECIMAL(6,2) & NOT NULL & 标准单位（计价单位，如“颗”“次”） \\
+unit\_price & DECIMAL(10,2) & NOT NULL & 单位价格 \\
+is\_active & TINYINT & NOT NULL，默认 1 & 是否启用 \\
+description & VARCHAR(120) & & 项目说明 \\
+\multicolumn{4}{@{}l}{\textbf{\textcolor{adcblue!90}{visit\_treatment　就诊治疗明细（关联表）}}}\\
+vt\_id & INT & PK，自增 & 明细编号（代理主键） \\
+visit\_id & INT & FK$\rightarrow$visit，NOT NULL & 就诊编号（组合关系，不可为空） \\
+item\_id & INT & FK$\rightarrow$treatment\_item & 治疗项目编号 \\
+quantity & DECIMAL(6,2) & NOT NULL & 执行数量 \\
+consumed\_units & DECIMAL(8,2) & NOT NULL & 消耗标准单位 \\
+subtotal & DECIMAL(10,2) & NOT NULL & 单项小计 \\
+executed\_time & DATETIME & & 执行时间 \\
+\multicolumn{4}{@{}l}{\textbf{\textcolor{adcblue!90}{statement　结算单}}}\\
+statement\_id & INT & PK，自增 & 结算单编号（代理主键） \\
+visit\_id & INT & FK$\rightarrow$visit，UNIQUE & 就诊编号（一次就诊最多一张结算单） \\
+patient\_id & INT & FK$\rightarrow$patient & 患者编号 \\
+issue\_date & DATE & NOT NULL & 开单日期 \\
+treatment\_fee & DECIMAL(10,2) & NOT NULL，默认 0 & 治疗费用 \\
+material\_fee & DECIMAL(10,2) & NOT NULL，默认 0 & 材料费用 \\
+discount & DECIMAL(10,2) & 默认 0 & 折扣金额 \\
+total\_due & DECIMAL(10,2) & NOT NULL & 应付总额 \\
+payment\_method & VARCHAR(20) & & 支付方式 \\
+payment\_status & VARCHAR(10) & NOT NULL & 支付状态（未付 / 已付 / 部分） \\
+payment\_time & DATETIME & & 支付时间 \\
+claim\_no & VARCHAR(30) & & 保险理赔编号 \\
+\end{longtable}
+}
+\subsection{建表脚本}
+
+映射结果可以直接写成数据定义语句。下表按“被引用表先建”的顺序给出 16 张表的建表脚本，字段命名与数据字典一一对应；注释中的中文名称即数据字典里的中文含义，便于开发时对照。
+
+\begin{lstlisting}[style=sql]
+CREATE TABLE employee (
+  employee_id  INT AUTO_INCREMENT PRIMARY KEY COMMENT '员工编号',
+  full_name    VARCHAR(30) NOT NULL COMMENT '姓名',
+  gender       CHAR(1)     NOT NULL COMMENT '性别',
+  phone        VARCHAR(20) NOT NULL COMMENT '联系电话',
+  hire_date    DATE        NOT NULL COMMENT '入职日期',
+  status       VARCHAR(10) NOT NULL COMMENT '在职状态'
+) COMMENT '员工';
+
+CREATE TABLE clinic (
+  clinic_id    INT AUTO_INCREMENT PRIMARY KEY COMMENT '诊所编号',
+  clinic_name  VARCHAR(40) NOT NULL COMMENT '诊所名称',
+  city         VARCHAR(20) NOT NULL COMMENT '所在城市',
+  address      VARCHAR(80) COMMENT '详细地址',
+  phone        VARCHAR(20) COMMENT '联系电话',
+  open_date    DATE        COMMENT '开业日期',
+  chair_count  INT         COMMENT '诊椅数量',
+  status       VARCHAR(10) NOT NULL COMMENT '营业状态'
+) COMMENT '诊所';
+
+CREATE TABLE qualification (
+  qualification_id   INT AUTO_INCREMENT PRIMARY KEY COMMENT '资质编号',
+  qualification_name VARCHAR(40) NOT NULL COMMENT '资质名称',
+  issuing_authority  VARCHAR(60) COMMENT '颁发机构',
+  valid_until        DATE        COMMENT '有效期至'
+) COMMENT '资质';
+
+CREATE TABLE dentist (
+  employee_id  INT PRIMARY KEY COMMENT '员工编号',
+  license_no   VARCHAR(30) NOT NULL UNIQUE COMMENT '执业证书编号',
+  specialty    VARCHAR(30) COMMENT '专业方向',
+  title        VARCHAR(20) COMMENT '职称',
+  FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
+) COMMENT '牙医';
+
+CREATE TABLE receptionist (
+  employee_id  INT PRIMARY KEY COMMENT '员工编号',
+  clinic_id    INT COMMENT '所属诊所',
+  grade        VARCHAR(10) COMMENT '岗位等级',
+  scope        VARCHAR(50) COMMENT '可受理业务范围',
+  FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
+  FOREIGN KEY (clinic_id)   REFERENCES clinic(clinic_id)
+) COMMENT '前台接待员';
+
+CREATE TABLE administrator (
+  employee_id    INT PRIMARY KEY COMMENT '员工编号',
+  position_name  VARCHAR(30) NOT NULL COMMENT '职务名称',
+  scope          VARCHAR(50) COMMENT '分管范围',
+  FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
+) COMMENT '总部管理者';
+
+CREATE TABLE dentist_clinic (
+  dc_id         INT AUTO_INCREMENT PRIMARY KEY COMMENT '执业点编号',
+  employee_id   INT NOT NULL COMMENT '牙医',
+  clinic_id     INT NOT NULL COMMENT '诊所',
+  schedule_note VARCHAR(50) COMMENT '排班说明',
+  is_primary    TINYINT NOT NULL DEFAULT 0 COMMENT '是否主要执业点',
+  UNIQUE KEY uk_dentist_clinic (employee_id, clinic_id),
+  FOREIGN KEY (employee_id) REFERENCES dentist(employee_id),
+  FOREIGN KEY (clinic_id)   REFERENCES clinic(clinic_id)
+) COMMENT '牙医执业点';
+
+CREATE TABLE dentist_qualification (
+  dq_id             INT AUTO_INCREMENT PRIMARY KEY COMMENT '资质记录编号',
+  employee_id       INT NOT NULL COMMENT '牙医',
+  qualification_id  INT NOT NULL COMMENT '资质',
+  obtain_date       DATE COMMENT '取得日期',
+  certificate_no    VARCHAR(30) COMMENT '证书编号',
+  UNIQUE KEY uk_dentist_qual (employee_id, qualification_id),
+  FOREIGN KEY (employee_id)      REFERENCES dentist(employee_id),
+  FOREIGN KEY (qualification_id) REFERENCES qualification(qualification_id)
+) COMMENT '牙医资质';
+\end{lstlisting}
+
+\begin{lstlisting}[style=sql]
+CREATE TABLE patient (
+  patient_id   INT AUTO_INCREMENT PRIMARY KEY COMMENT '患者编号',
+  full_name    VARCHAR(30) NOT NULL COMMENT '姓名',
+  gender       CHAR(1)     NOT NULL COMMENT '性别',
+  birth_date   DATE        COMMENT '出生日期',
+  phone        VARCHAR(20) NOT NULL COMMENT '联系电话',
+  email        VARCHAR(50) COMMENT '电子邮箱',
+  address      VARCHAR(80) COMMENT '通讯地址',
+  created_date DATE        NOT NULL COMMENT '建档日期',
+  note         VARCHAR(120) COMMENT '备注'
+) COMMENT '患者';
+
+CREATE TABLE allergen (
+  allergen_id    INT AUTO_INCREMENT PRIMARY KEY COMMENT '过敏症编号',
+  allergen_name  VARCHAR(30) NOT NULL UNIQUE COMMENT '过敏症名称',
+  category       VARCHAR(20) COMMENT '类别',
+  description    VARCHAR(120) COMMENT '说明'
+) COMMENT '过敏症';
+
+CREATE TABLE treatment_item (
+  item_id       INT AUTO_INCREMENT PRIMARY KEY COMMENT '治疗项目编号',
+  item_name     VARCHAR(40)  NOT NULL UNIQUE COMMENT '项目名称',
+  standard_unit DECIMAL(6,2) NOT NULL COMMENT '标准单位',
+  unit_price    DECIMAL(10,2) NOT NULL COMMENT '单位价格',
+  is_active     TINYINT NOT NULL DEFAULT 1 COMMENT '是否启用',
+  description   VARCHAR(120) COMMENT '项目说明'
+) COMMENT '治疗项目';
+
+CREATE TABLE appointment (
+  appointment_id   INT AUTO_INCREMENT PRIMARY KEY COMMENT '预约编号',
+  patient_id       INT NOT NULL COMMENT '患者',
+  employee_id      INT NOT NULL COMMENT '接诊牙医',
+  clinic_id        INT NOT NULL COMMENT '诊所',
+  appointment_time DATETIME NOT NULL COMMENT '预约时间',
+  expected_minutes INT COMMENT '预计时长',
+  channel          VARCHAR(10) COMMENT '预约渠道',
+  status           VARCHAR(10) NOT NULL COMMENT '预约状态',
+  created_time     DATETIME NOT NULL COMMENT '登记时间',
+  cancel_reason    VARCHAR(60) COMMENT '取消原因',
+  KEY idx_dentist_time (employee_id, appointment_time),
+  FOREIGN KEY (patient_id)  REFERENCES patient(patient_id),
+  FOREIGN KEY (employee_id) REFERENCES dentist(employee_id),
+  FOREIGN KEY (clinic_id)   REFERENCES clinic(clinic_id)
+) COMMENT '预约';
+
+CREATE TABLE visit (
+  visit_id         INT AUTO_INCREMENT PRIMARY KEY COMMENT '就诊编号',
+  appointment_id   INT UNIQUE COMMENT '来源预约',
+  patient_id       INT NOT NULL COMMENT '患者',
+  employee_id      INT NOT NULL COMMENT '接诊牙医',
+  clinic_id        INT NOT NULL COMMENT '诊所',
+  arrival_time     DATETIME NOT NULL COMMENT '到诊时间',
+  end_time         DATETIME COMMENT '结束时间',
+  chief_complaint  VARCHAR(200) COMMENT '主诉',
+  diagnosis        VARCHAR(200) COMMENT '诊断结论',
+  status           VARCHAR(10) NOT NULL COMMENT '就诊状态',
+  is_cancelled     TINYINT NOT NULL DEFAULT 0 COMMENT '是否取消',
+  recorded_time    DATETIME NOT NULL COMMENT '记录时间',
+  KEY idx_clinic_time (clinic_id, recorded_time),
+  FOREIGN KEY (appointment_id) REFERENCES appointment(appointment_id),
+  FOREIGN KEY (patient_id)     REFERENCES patient(patient_id),
+  FOREIGN KEY (employee_id)    REFERENCES dentist(employee_id),
+  FOREIGN KEY (clinic_id)      REFERENCES clinic(clinic_id)
+) COMMENT '就诊';
+
+CREATE TABLE visit_treatment (
+  vt_id           INT AUTO_INCREMENT PRIMARY KEY COMMENT '明细编号',
+  visit_id        INT NOT NULL COMMENT '就诊',
+  item_id         INT NOT NULL COMMENT '治疗项目',
+  quantity        DECIMAL(6,2)  NOT NULL COMMENT '执行数量',
+  consumed_units  DECIMAL(8,2)  NOT NULL COMMENT '消耗标准单位',
+  subtotal        DECIMAL(10,2) NOT NULL COMMENT '单项小计',
+  executed_time   DATETIME COMMENT '执行时间',
+  FOREIGN KEY (visit_id) REFERENCES visit(visit_id),
+  FOREIGN KEY (item_id)  REFERENCES treatment_item(item_id)
+) COMMENT '就诊治疗明细';
+
+CREATE TABLE patient_allergy (
+  record_id         INT AUTO_INCREMENT PRIMARY KEY COMMENT '记录编号',
+  patient_id        INT NOT NULL COMMENT '患者',
+  allergen_id       INT NOT NULL COMMENT '过敏症',
+  severity          VARCHAR(10) NOT NULL COMMENT '严重程度',
+  reaction          VARCHAR(120) COMMENT '反应描述',
+  first_record_date DATE COMMENT '首次记录日期',
+  UNIQUE KEY uk_patient_allergen (patient_id, allergen_id),
+  FOREIGN KEY (patient_id)  REFERENCES patient(patient_id),
+  FOREIGN KEY (allergen_id) REFERENCES allergen(allergen_id)
+) COMMENT '患者过敏记录';
+
+CREATE TABLE statement (
+  statement_id   INT AUTO_INCREMENT PRIMARY KEY COMMENT '结算单编号',
+  visit_id       INT UNIQUE COMMENT '就诊',
+  patient_id     INT NOT NULL COMMENT '患者',
+  issue_date     DATE NOT NULL COMMENT '开单日期',
+  treatment_fee  DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT '治疗费用',
+  material_fee   DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT '材料费用',
+  discount       DECIMAL(10,2) DEFAULT 0 COMMENT '折扣金额',
+  total_due      DECIMAL(10,2) NOT NULL COMMENT '应付总额',
+  payment_method VARCHAR(20) COMMENT '支付方式',
+  payment_status VARCHAR(10) NOT NULL COMMENT '支付状态',
+  payment_time   DATETIME COMMENT '支付时间',
+  claim_no       VARCHAR(30) COMMENT '保险理赔编号',
+  FOREIGN KEY (visit_id)   REFERENCES visit(visit_id),
+  FOREIGN KEY (patient_id) REFERENCES patient(patient_id)
+) COMMENT '结算单';
+\end{lstlisting}
+
+\subsection{范式检查}
+
+按课件的判断，只要对象建模是正确的，映射结果自然满足第一至第三范式；本案逐项核对如下。
+
+\begin{table}[H]
+\centering
+\caption{范式核对}
+{\small
+\begin{tabularx}{\linewidth}{@{}L{1.9cm}L{5.6cm}X@{}}
+\toprule
+\textbf{\textcolor{adcblue!92}{范式}} & \textbf{\textcolor{adcblue!92}{要求}} & \textbf{\textcolor{adcblue!92}{本案的核对结果}} \\
+\midrule
+1NF & 每列取值原子，无重复组 & 过敏史没有挤进患者表，而是独立为 patient\_allergy；一名患者有多项过敏症时增加行数而非增加列 \\
+2NF & 非主属性完全依赖于主键 & 所有表都使用单列代理主键，不存在“只依赖复合主键的一部分”的列；关联表用唯一约束而非复合主键来保证语义 \\
+3NF & 消除传递依赖 & 诊所的城市、地址只存放在 clinic 表，不冗余到 employee 或 visit；治疗项目的单位价格只存放在 treatment\_item，就诊治疗明细只存消耗单位与小计，不复制单价 \\
+\bottomrule
+\end{tabularx}
+}
+\end{table}
+
+\subsection{设计约束与索引安排}
+
+{\footnotesize\renewcommand{\arraystretch}{1.12}
+\begin{table}[H]
+\centering
+\caption{数据层的关键设计决定}
+\begin{tabularx}{\linewidth}{@{}L{3.7cm}L{6.3cm}X@{}}
+\toprule
+\textbf{\textcolor{adcblue!92}{设计决定}} & \textbf{\textcolor{adcblue!92}{做法}} & \textbf{\textcolor{adcblue!92}{理由}} \\
+\midrule
+主键 & 全部使用代理主键（自增编号） & 满足“唯一且恒定”，且把领域字段与主键分开，手机号、邮箱变更不影响引用关系 \\
+唯一约束 & 执业证书编号、项目名称、过敏症名称、预约与结算单的一对一外键均加唯一约束 & 把业务规则写进数据结构，而不只写在用例规约里 \\
+外键完整性 & 全部显式声明外键 & 明细不会出现无主记录，医生不会挂到不存在的诊所 \\
+金额精度 & 使用 DECIMAL(10,2)，不使用浮点类型 & 治疗按“标准单位 × 单位价格”计价，必须精确 \\
+时间类型 & 预约、到诊用 DATETIME；日期用 DATE & 取消率、办理时长等度量指标都以时间字段为基础 \\
+索引 & 预约表按（牙医编号 + 预约时间）建复合索引；就诊表按（诊所编号 + 记录时间）建复合索引 & 支撑排班冲突检查与按诊所按时段的经营报表 \\
+敏感信息 & 不保存银行卡号等支付凭证 & 结算通过支付网关接口完成，与 UC-04 的设计约束一致 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+}
+
+以上两份图表、数据字典与建表脚本构成了设计阶段“建立数据层”的完整交付：分析类图中的每一个类都能在表结构中找到对应，每一条关联都能在外键（或关联表）中找到落点，反之表结构里也找不出一个没有出处的列。
+
+
+% ============================ 6.9 精化业务层 ============================
+\subsection{精化业务层：从责任到操作}
+
+分析类图只回答了“谁负责”，没有回答“怎么算”。精化业务层要做三件事：给实体类补上\textbf{领域操作}（而不是一堆 get/set）、把状态机里的每条迁移落到具体操作上、确定层与层之间的依赖方向。课程反复强调的一条底线是：控制类只分配责任，不要把后面的类降格成“数据”——如果业务方法全堆在控制类里，实体类就退化成了一张表。
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm,scale=0.93,transform shape,
+  layer/.style={draw=adcblue!55,line width=0.7pt,rounded corners=4pt,fill=adclight!22},
+  part/.style={draw=adcblue!50,line width=0.5pt,rounded corners=2.5pt,fill=white,
+               align=center,font=\scriptsize,inner sep=4pt,minimum height=0.8cm}]
+
+  % 表示层
+  \draw[layer] (0.2,0.45) rectangle (15.35,-1.25);
+  \node[anchor=west,font=\small\bfseries,text=adcblue] at (0.42,0.18) {表示层（边界类）};
+  \node[part,minimum width=4.35cm] at (3.05,-0.72) {柜面终端界面\\建档 · 预约 · 到诊 · 结算};
+  \node[part,minimum width=4.35cm] at (7.80,-0.72) {总部报表界面\\资质 · 诊所 · 业绩 · 报表};
+  \node[part,minimum width=4.35cm] at (12.55,-0.72) {外部接口适配\\支付网关 · 保险 · 通知};
+
+  % 业务层
+  \draw[layer] (0.2,-2.45) rectangle (15.35,-5.05);
+  \node[anchor=west,font=\small\bfseries,text=adcblue] at (0.42,-2.72) {业务层（控制类 + 领域类）};
+  \node[part,minimum width=6.55cm,minimum height=1.85cm] at (3.85,-3.90)
+    {控制类（9 个，一用例一个）\\编排流程 · 校验前置条件 · 划定事务边界};
+  \node[part,minimum width=6.55cm,minimum height=1.85cm] at (11.55,-3.90)
+    {领域操作（实体类的业务方法）\\Appointment.book() · Visit.addTreatment()\\Statement.settle() · Dentist.isQualifiedFor()};
+
+  % 数据层
+  \draw[layer] (0.2,-6.10) rectangle (15.35,-7.95);
+  \node[anchor=west,font=\small\bfseries,text=adcblue] at (0.42,-6.42) {数据层};
+  \node[part,minimum width=6.55cm] at (3.85,-7.30) {数据映射器 DentalMapper\\对象 $\leftrightarrow$ 行，屏蔽 SQL 与表名};
+  \node[part,minimum width=6.55cm] at (11.55,-7.30) {关系数据库 MySQL 8.0\\16 张表（图 11、图 12）};
+
+  % 依赖
+  \draw[-{Stealth[length=4pt]},thick,adcblue!70] (5.20,-1.32) -- node[right=2pt,font=\tiny]{提交请求（标识 + 输入值）} (5.20,-2.38);
+  \draw[-{Stealth[length=4pt]},thick,adcblue!70] (5.20,-5.12) -- node[right=2pt,font=\tiny]{映射器读写} (5.20,-6.18);
+  \draw[{Stealth[length=4pt]}-,thick,adcgreen!75,dashed] (10.20,-6.05) -- node[right=2pt,font=\tiny]{返回领域对象，不返回结果集} (10.20,-5.12);
+
+  \node[font=\tiny,text=adcgray,anchor=west,align=left] at (0.2,-8.35)
+    {依赖方向：表示层 $\rightarrow$ 业务层 $\rightarrow$ 映射器接口 $\rightarrow$ 数据库。业务层里不出现表名与 SQL，换库时只替换映射器实现。};
+\end{tikzpicture}
+\caption{ADC 系统的分层与依赖方向}
+\end{figure}
+
+\figtag{图 13 说明} 三个层的划分与图 7 的三种构造型一一对应：边界类构成表示层，控制类与实体类的领域操作构成业务层，实体类的持久化由映射器落到数据层。关键在中间那条虚线——映射器返回的是领域对象而不是 ResultSet，业务层因此不知道自己是存在 MySQL 还是别的存储里；这也正是课件里“建立数据层”之后还要“精化业务层”的原因：数据层解决存哪儿，业务层解决谁来保证规则。
+
+\begin{longtable}{@{}L{2.0cm}L{4.2cm}L{4.2cm}L{3.8cm}@{}}
+\caption{核心领域操作与责任分配}\\
+\toprule
+\textbf{\textcolor{adcblue!92}{类}} & \textbf{\textcolor{adcblue!92}{关键操作（签名）}} & \textbf{\textcolor{adcblue!92}{责任与业务规则}} & \textbf{\textcolor{adcblue!92}{状态变化}} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{\textcolor{adcblue!92}{类}} & \textbf{\textcolor{adcblue!92}{关键操作（签名）}} & \textbf{\textcolor{adcblue!92}{责任与业务规则}} & \textbf{\textcolor{adcblue!92}{状态变化}} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+预约 & \texttt{book(patientId,}\newline \texttt{dentistId, clinicId,}\newline \texttt{time, needs)} & 校验同一牙医 30 分钟时段唯一、患者未到诊次数未超阈值，生成预约记录 & 新增，待就诊 \\
+预约 & \texttt{cancel(reason,}\newline \texttt{operator)} & 仅当前时间早于预约时间时允许；记录取消原因与操作人 & 待就诊 $\rightarrow$ 已取消 \\
+预约 & \texttt{markAttended()} /\newline \texttt{markNoShow()} & 由 UC-05 调用；未到诊由日终批处理按“时段已过且无就诊”判定 & 待就诊 $\rightarrow$ 已就诊 / 未到诊 \\
+牙医 & \texttt{isQualifiedFor}\newline \texttt{(itemId, date)} & 资质类别覆盖治疗项目，且证书在有效期内 & 只读 \\
+牙医 & \texttt{availableSlots}\newline \texttt{(date, duration)} & 排班时段与已占用时段做差集，供预约界面选择 & 只读 \\
+就诊 & \texttt{start}\newline \texttt{(appointmentId, complaint)} & 由预约生成就诊，写入主诉，一个预约至多一个就诊 & 新增，进行中 \\
+就诊 & \texttt{addTreatment}\newline \texttt{(itemId, units)} & 校验项目属于标准目录，取标准单价，生成明细并计算小计 & 组合明细 \\
+就诊 & \texttt{checkAllergyConflict}\newline \texttt{(itemId)} & 比对患者过敏症与治疗材料成分，冲突即拒绝 & 只读（可抛异常） \\
+就诊 & \texttt{complete()} & 明细非空才允许完成；完成后触发 UC-05 改写预约状态 & 进行中 $\rightarrow$ 已完成 \\
+结算单 & \texttt{issue(visitId)} & 汇总明细、折扣与保险，生成待出具单据 & 新增，待出具 \\
+结算单 & \texttt{confirm()}\newline \texttt{submitForPayment}\newline \texttt{(method)} & 确认后不可直接修改；提交收款时冻结金额 & 待出具 $\rightarrow$ 已出具 $\rightarrow$ 待支付 \\
+结算单 & \texttt{settle(paidAmount,}\newline \texttt{txnId)} & 以支付网关返回的交易号为准；金额不符则拒绝 & 待支付 $\rightarrow$ 已结算 \\
+业绩 & \texttt{calculate}\newline \texttt{(dentistId, quarter)} & 汇总该季度收入、材料成本与分摊运营费用 & 只读 \\
+\end{longtable}
+
+这张表是“分析到设计”的落点：左列全部来自图 5、图 6 的实体类，右列的状态变化全部来自图 10 的状态机，中间一列则是用例规约里的业务规则。三者能对上，说明前面的模型没有互相打架。特别说明两点：操作名用领域动词（\texttt{book}、\texttt{settle}、\texttt{markNoShow}），不用 \texttt{setStatus}；查询类操作与修改类操作分开，前者不改变状态，后者必须守卫条件成立才能执行。
+
+% ============================ 6.10 精化表示层 ============================
+\subsection{精化表示层：边界类的界面责任}
+
+表示层的边界由分析阶段的边界类划定：它只负责输入采集、输出呈现与简单过滤，\textbf{不做业务判断}。这条边界一旦松动，界面就会开始“顺手校验一下”，规则便从业务层漏到表示层，换一个终端（比如将来的患者自助端）就得重写一遍。ADC 的终端只有两类人：前台与总部管理者，因此窗体导航可以画成两棵树。
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm,
+  scr/.style={draw=adcblue!60,line width=0.6pt,rounded corners=3pt,fill=adclight!50,
+              minimum width=2.85cm,minimum height=0.72cm,align=center,font=\scriptsize,inner sep=2pt},
+  nav/.style={draw=adcblue!55,line width=0.6pt}]
+
+  \node[scr,minimum width=2.5cm,fill=adcblue!12] (lg) at (8.0,0.10) {登录};
+  \node[scr,fill=adclight!85] (h1) at (4.15,-1.55) {前台工作台};
+  \node[scr,fill=adclight!85] (h2) at (11.85,-1.55) {总部工作台};
+
+  \node[scr] (p1) at (2.30,-3.40) {患者建档\\{\tiny UC-01}};
+  \node[scr] (p2) at (5.95,-3.40) {预约登记\\{\tiny UC-02}};
+  \node[scr] (p3) at (2.30,-5.05) {到诊与治疗\\{\tiny UC-03、UC-05}};
+  \node[scr] (p4) at (5.95,-5.05) {结算与收款\\{\tiny UC-04}};
+
+  \node[scr] (q1) at (10.15,-3.40) {牙医资质\\{\tiny UC-06}};
+  \node[scr] (q2) at (13.65,-3.40) {诊所信息\\{\tiny UC-07}};
+  \node[scr] (q3) at (10.15,-5.05) {季度业绩\\{\tiny UC-08}};
+  \node[scr] (q4) at (13.65,-5.05) {经营报表\\{\tiny UC-09}};
+
+  % 登录 → 两个工作台
+  \draw[nav] (lg.south) -- (8.0,-0.95) -- (4.15,-0.95) -- (h1.north);
+  \draw[nav] (8.0,-0.95) -- (11.85,-0.95) -- (h2.north);
+
+  % 前台工作台 → 四个窗体
+  \draw[nav] (h1.south) -- (4.15,-2.35) -- (2.30,-2.35) -- (p1.north);
+  \draw[nav] (4.15,-2.35) -- (5.95,-2.35) -- (p2.north);
+  \draw[nav] (p1.south) -- (p3.north);
+  \draw[nav] (p2.south) -- (p4.north);
+
+  % 总部工作台 → 四个窗体
+  \draw[nav] (h2.south) -- (11.85,-2.35) -- (10.15,-2.35) -- (q1.north);
+  \draw[nav] (11.85,-2.35) -- (13.65,-2.35) -- (q2.north);
+  \draw[nav] (q1.south) -- (q3.north);
+  \draw[nav] (q2.south) -- (q4.north);
+
+  \node[font=\tiny,text=adcgray,anchor=west] at (2.30,-5.72) {前台接待员（主执行者）};
+  \node[font=\tiny,text=adcgray,anchor=west] at (10.15,-5.72) {总部管理者（主执行者）};
+\end{tikzpicture}
+\caption{表示层的窗体导航图}
+\end{figure}
+
+\figtag{图 14 说明} 九个人工操作用例各自对应一个窗体，没有“万能界面”；后台批处理（UC-08 的季度汇总、逾期未到诊判定）不占窗体，由时间触发。导航只有两层——工作台选业务域，业务域选窗体——前台完成一次标准预约最多四次点击进入表单，与 UC-02 质量需求里“不超过 6 次人机交互”的指标相容。
+
+\begin{table}[H]
+\centering
+\caption{窗体的输入、输出与表示层约束}
+{\small
+\begin{tabularx}{\linewidth}{@{}L{2.4cm}L{1.8cm}L{4.3cm}L{3.8cm}X@{}}
+\toprule
+\textbf{\textcolor{adcblue!92}{窗体}} & \textbf{\textcolor{adcblue!92}{用例}} & \textbf{\textcolor{adcblue!92}{主要输入}} & \textbf{\textcolor{adcblue!92}{主要输出}} & \textbf{\textcolor{adcblue!92}{约束}} \\
+\midrule
+患者建档 & UC-01 & 姓名、出生日期、电话、地址、过敏症逐项 & 患者编号、过敏提示 & 必填项就地校验；过敏症不得只填“有” \\
+预约登记 & UC-02 & 姓名／电话、日期时段、治疗需求、牙医 & 可约时段、牙医列表、预约编号 & 只读展示单价与状态，不允许改价或改状态 \\
+到诊与治疗 & UC-03 & 预约编号、主诉、治疗项目与单位数量 & 过敏警示、治疗清单与试算金额 & 单价来自目录，界面不可编辑 \\
+结算与收款 & UC-04 & 支付方式、折扣、保险信息 & 结算单明细、应付总额、支付结果 & 金额只读；失败原因原样呈现 \\
+资质维护 & UC-06 & 证书编号、类别、有效期 & 资质列表与到期提醒 & 到期前 60 天高亮 \\
+诊所信息 & UC-07 & 名称、地址、诊椅数、营业状态 & 诊所清单 & 关闭诊所前校验未来预约 \\
+季度业绩 & UC-08 & 季度、牙医 & 收入、成本、运营费用、激励金额 & 只读报表，可导出 \\
+经营报表 & UC-09 & 时间范围、诊所、治疗类别 & 取消率、治疗量、收入对比 & 只读；跨诊所口径统一 \\
+\bottomrule
+\end{tabularx}
+}
+\end{table}
+
+把图 14 与上表合起来看，表示层的职责就清楚了：它把“人怎么操作”翻译成“业务层的一个操作调用”，再把返回的领域对象渲染成表格与提示。所有判断——时段是否冲突、单价是否被授权调整、结算单能否红冲——都不在这一层。课件在讲可用性需求时举过“前台 5 次击键完成客人入住”的例子，ADC 的对应指标就写进了 UC-02 的质量需求：熟练前台完成一次标准预约不超过 6 次人机交互。
+
+\section{小结：从愿景到实现的贯通}
+
+本章先汇总全部交付物与建模工作流的对应关系，再给出两条追溯链——先从度量指标追到系统用例，再从愿景诉求追到类与表。
+
+\begin{table}[H]
+\centering
+\caption{建模工作流与本报告的对应}
+\small
+\begin{tabularx}{\linewidth}{@{}L{2.0cm}L{3.1cm}L{3.5cm}X@{}}
+\toprule
+\textbf{\textcolor{adcblue!92}{阶段}} & \textbf{\textcolor{adcblue!92}{工件}} & \textbf{\textcolor{adcblue!92}{本报告位置}} & \textbf{\textcolor{adcblue!92}{说明}} \\
+\midrule
+A 业务建模 & 愿景 & 第二章 & 目标组织、老大、目标与度量指标 \\
+ & 业务用例图 & 3.2 节，图 1 & 组织对外提供的价值 \\
+ & 现状业务序列图 & 3.3 节，图 2 & 未引入系统时的真实流程 \\
+ & 改进后业务序列图 & 3.4 节，图 3 & 三条改进模式的落点 \\
+B 需求 & 系统用例图 & 4.2 节，图 4 & 9 个系统用例、4 个执行者 \\
+ & 系统用例规约 & 4.4 节 & UC-02/03/04 完整规约，其余见清单 \\
+C 分析 & 分析类图 & 5.5--5.7 节，图 5--7 & 16 个实体类 + 边界类、控制类 \\
+ & 分析序列图 & 5.8、5.9 节，图 8、9 & UC-02、UC-03 的责任分配 \\
+ & 分析状态机图 & 5.10 节，图 10 & 预约与结算单的状态迁移 \\
+D 设计 & 建立数据层 & 6.1--6.9 节，图 11、12 & 16 张表、数据字典、建表 SQL \\
+ & 精化业务层 & 6.10 节，图 13 & 分层、领域操作、状态迁移落点 \\
+ & 精化表示层 & 6.11 节，图 14 & 窗体导航与输入输出责任 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+需求排序的依据是愿景。下表给出度量指标与系统用例之间的追溯关系。
+
+\begin{table}[H]
+\centering
+\caption{愿景度量指标与系统用例的追溯}
+\begin{tabularx}{\linewidth}{@{}L{5.4cm}L{4.6cm}X@{}}
+\toprule
+\textbf{\textcolor{adcblue!92}{度量指标的变化}} & \textbf{\textcolor{adcblue!92}{支撑的用例}} & \textbf{\textcolor{adcblue!92}{作用机理}} \\
+\midrule
+全连锁患者取消率下降 25\% 以上 & UC-02、UC-05 & 每次预约成为一条记录，到诊／取消自动标记，取消率可按诊所、按牙医实时可见 \\
+新增诊所首季度对齐管理标准 & UC-01、UC-02、UC-07 & 患者档案与预约口径全连锁统一，新诊所开业即接入同一套数据与规则 \\
+各地治疗标准可比较 & UC-03、UC-09 & 治疗项目与标准单位由总部统一维护，各诊所治疗记录口径一致，报表可直接对比 \\
+牙医业绩与激励基金可核算 & UC-06、UC-08 & 按季度汇总每位牙医的收入、成本与运营费用，支撑净利润 10\% 激励基金的分配 \\
+经营决策可追溯与稽核 & UC-04、UC-06、UC-09 & 标准化结算单、资质档案与经营报表构成管理闭环，支撑扩张后的规模化治理 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+至此，四个阶段已经在同一条链条上闭环：愿景、业务建模与需求界定了系统边界，分析与设计界定了系统内部结构。下表把“诉求—用例—类与表”串起来，说明设计层的每一个结构都能回溯到愿景。
+
+\begin{table}[H]
+\centering
+\caption{愿景、系统用例与数据层的贯通}
+\begin{tabularx}{\linewidth}{@{}L{4.6cm}L{3.6cm}X@{}}
+\toprule
+\textbf{\textcolor{adcblue!92}{愿景诉求}} & \textbf{\textcolor{adcblue!92}{系统用例}} & \textbf{\textcolor{adcblue!92}{承载它的类与表}} \\
+\midrule
+取消率可统计、可按诊所与牙医实时查看 & UC-02、UC-05 & 预约、就诊 $\rightarrow$ appointment、visit；“是否取消”与“就诊状态”两个字段就是统计口径 \\
+患者过敏史逐项可查 & UC-03 & 过敏症、患者过敏记录 $\rightarrow$ allergen、patient\_allergy（多对多的关联表） \\
+牙医跨诊所轮岗与资质匹配 & UC-02、UC-06 & 牙医执业点、牙医资质 $\rightarrow$ dentist\_clinic、dentist\_qualification（两张关联表） \\
+治疗标准可比、费用可核 & UC-03、UC-04 & 治疗项目、就诊治疗明细、结算单 $\rightarrow$ treatment\_item、visit\_treatment、statement \\
+经营数据可跨诊所对比 & UC-08、UC-09 & 诊所、牙医、就诊、结算单 $\rightarrow$ clinic、dentist、visit、statement；按诊所与时段建索引 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\end{document}
