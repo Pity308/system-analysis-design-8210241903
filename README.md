@@ -34,7 +34,6 @@
 | --- | --- |
 | `信管T2401班马博晨.pdf` | 报告成品，45 页，14 张图全部在此 |
 | `adc-report.tex` | LaTeX 源码，单文件自包含，14 张图均为 TikZ 矢量代码，非外链图片 |
-| `编译说明.txt` | 编译方法与“改哪里搜哪里”的索引 |
 
 ## 编译方法
 
@@ -44,3 +43,5 @@ xelatex adc-report.tex   # 第二遍，目录与交叉引用才正确
 ```
 
 环境：TeX Live 2024，XeLaTeX（依赖 ctex、tikz、tcolorbox、titlesec、tocloft）。
+
+用 Overleaf 的话：上传 `adc-report.tex` → Menu → Compiler 选 **XeLaTeX** → Recompile（它会自动处理两遍）。
