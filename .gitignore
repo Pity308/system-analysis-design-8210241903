@@ -11,3 +11,6 @@ _build/
 # 系统文件
 .DS_Store
 Thumbs.db
+
+# 单图导出（图在 PDF 与 .tex 内，PNG 仅本地存档，不入库）
+图*.png
