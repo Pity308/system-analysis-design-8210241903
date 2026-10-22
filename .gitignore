@@ -14,3 +14,6 @@ Thumbs.db
 
 # 单图导出（图在 PDF 与 .tex 内，PNG 仅本地存档，不入库）
 图*.png
+
+# 编译中间产物同名 PDF（成品另存为 信管T2401班马博晨.pdf）
+adc-report.pdf
