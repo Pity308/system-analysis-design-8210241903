@@ -914,8 +914,8 @@ UC-10 & 患者自助预约 $\bigstar$ & 患者 & 患者在小程序中查看可�
   \item 系统向前台接待员展示结算单的逐行明细与总价；
   \item 前台接待员确认结算单（如有异议，转由牙医核对治疗清单）；
   \item 系统保存结算单（状态为“已出具”），并将治疗行与结算单建立关联；
-  \item 系统向患者出具结算单，并按需通过支付／保险机构接口发起收款或理赔；
-  \item 支付／保险机构反馈处理结果，系统更新结算单状态。
+  \item 系统向患者出具结算单，前台在收银台完成到店收款（本期不接在线支付网关）；
+  \item 收款完成后系统记一笔收款流水，并据累计实收更新结算单状态。
 \end{enumerate}
 
 \vspace{2pt}
@@ -959,7 +959,7 @@ UC-10 & 患者自助预约 $\bigstar$ & 患者 & 患者在小程序中查看可�
 \textbf{设计约束}
 \begin{itemize}[leftmargin=1.4em,topsep=2pt,itemsep=1pt]
   \item 结算单格式与编号规则由总部统一规定，各诊所不得自行变更。
-  \item 结算必须通过支付／保险机构接口完成，系统不得保存患者银行卡信息。
+  \item 收款在店内收银台完成，系统只记录收款方式与流水，不接在线支付网关，也不保存患者银行卡信息；一张结算单可分多笔收款，收款进度以累计实收为准。
   \item 结算单须带保险理赔所需的项目编码，以便与保险机构对接。
 \end{itemize}
 \end{ucbox}
@@ -1505,7 +1505,7 @@ UC-10 & 患者自助预约控制 & 预约、患者、牙医、诊所 & 与 UC-02
 \toprule
 \textbf{\textcolor{adcblue!92}{对象概念}} & \textbf{\textcolor{adcblue!92}{关系数据库概念}} & \textbf{\textcolor{adcblue!92}{本案的落实}} \\
 \midrule
-类 & 表 & 16 个实体类映射为 16 张业务表（另有 5 张技术支撑表，见 6.6 节末） \\
+类 & 表 & 16 个实体类映射为 16 张主表，加上多对多关系落成的 5 张关联表，共 17 张业务表（另有 5 张技术支撑表，见 6.6 节末） \\
 属性 & 列 & 概念属性映射为列，不含操作 \\
 对象 & 行 & 一名患者、一次就诊各是一行 \\
 泛化 & 超类主键作为所有子类的主键 & 牙医、前台接待员、总部管理者三张表的主键都是 employee.employee\_id \\
@@ -1621,9 +1621,9 @@ UC-10 & 患者自助预约控制 & 预约、患者、牙医、诊所 & 与 UC-02
 
 表中前三行的“超类主键作为子类主键”是泛化特有的映射方式，它保证了牙医、前台接待员、总部管理者不会出现与员工不一致的身份；后三行则说明：多对多关联一旦带上业务属性（严重程度、排班说明、取得日期），落成的关联表同时也就是第五章识别出的那个关联类——分析与设计在这里严丝合缝地对上了。
 
-\subsection{数据库表清单：16 张业务表的主键与外键}
+\subsection{数据库表清单：17 张业务表的主键与外键}
 
-前两节讲的是“怎么映射”，这一节把映射结果一次列全。问题域内共 \textbf{16 张业务表}，分为四组：\textbf{6 张基础表}（无外键）、\textbf{3 张人员子类表}（主键即外键）、\textbf{4 张关联表}（多对多的产物）、\textbf{3 张业务主表}（预约、就诊、结算单）。下面按两个领域分列，与图 11、图 12 一一对应；另有 5 张技术支撑表，因不属于问题域，在本节末尾单列。
+前两节讲的是“怎么映射”，这一节把映射结果一次列全。问题域内共 \textbf{17 张业务表}，分为四组：\textbf{6 张基础表}（无外键）、\textbf{3 张人员子类表}（主键即外键）、\textbf{5 张关联表}（多对多的产物）、\textbf{3 张业务主表}（预约、就诊、结算单）。下面按两个领域分列，与图 11、图 12 一一对应；另有 5 张技术支撑表，因不属于问题域，在本节末尾单列。
 
 {\footnotesize
 \begin{longtable}{@{}L{0.9cm}L{3.2cm}L{2.6cm}L{5.2cm}L{2.6cm}@{}}
@@ -1653,7 +1653,7 @@ UC-10 & 患者自助预约控制 & 预约、患者、牙医、诊所 & 与 UC-02
 
 {\footnotesize
 \begin{longtable}{@{}L{0.9cm}L{3.2cm}L{2.6cm}L{5.2cm}L{2.6cm}@{}}
-\caption{患者与诊疗域 8 张表的主键与外键}\label{tab:tbl-pat}\\
+\caption{患者与诊疗域 9 张表的主键与外键}\label{tab:tbl-pat}\\
 \toprule
 \textbf{\textcolor{adcblue!92}{序}} & \textbf{\textcolor{adcblue!92}{表（中文 / 英文）}} & \textbf{\textcolor{adcblue!92}{主键}} & \textbf{\textcolor{adcblue!92}{外键（$\rightarrow$ 被引用表）}} & \textbf{\textcolor{adcblue!92}{存在理由}} \\
 \midrule
@@ -1672,6 +1672,7 @@ UC-10 & 患者自助预约控制 & 预约、患者、牙医、诊所 & 与 UC-02
 6 & 治疗项目 treatment\_item & item\_id & 无 & 单价目录 \\
 7 & 就诊治疗明细 visit\_treatment & vt\_id & visit\_id $\rightarrow$ visit（NOT NULL）；item\_id $\rightarrow$ treatment\_item & 组合关系落点 \\
 8 & 结算单 statement & statement\_id & visit\_id $\rightarrow$ visit（唯一）；patient\_id $\rightarrow$ patient & 财务凭证 \\
+9 & 预约治疗需求 appointment\_treatment & at\_id & appointment\_id $\rightarrow$ appointment；item\_id $\rightarrow$ treatment\_item & 资质匹配的依据 \\
 \end{longtable}
 }
 
@@ -1680,18 +1681,18 @@ UC-10 & 患者自助预约控制 & 预约、患者、牙医、诊所 & 与 UC-02
 \begin{itemize}[leftmargin=1.8em,topsep=3pt,itemsep=2pt]
   \item \textbf{主键一律用代理键}，且都满足“唯一且恒定”；身份证号、手机号、邮箱这些会变的领域字段只作普通列，不承担主键职责。
   \item \textbf{泛化看人员三表}：牙医、前台接待员、总部管理者的主键与员工表是同名列、同取值，既是主键又是外键，所以一名牙医不可能挂在一个“不存在的员工编号”上。
-  \item \textbf{关联看四张关联表}：牙医执业点、牙医资质、患者过敏记录、就诊治疗明细各持两条外键，并各自带上业务列（排班说明、取得日期、严重程度、执行数量）——多对多关系在这里既被拆开，又不丢语义。
+  \item \textbf{关联看五张关联表}：牙医执业点、牙医资质、患者过敏记录、就诊治疗明细、预约治疗需求各持两条外键，并各自带上业务列（排班说明、取得日期、严重程度、执行数量）——多对多关系在这里既被拆开，又不丢语义。
   \item \textbf{一对一靠唯一约束}：预约与就诊、就诊与结算单都是 1 : 0..1，落成外键后在非 1 方加 UNIQUE，而不是让两张表互相引用。
 \end{itemize}
 
-这套业务结构只有 16 张表，却同时满足了三件事：任何一次取消都能按诊所、按牙医、按时间切片统计；任何一笔收费都能回溯到具体就诊、具体治疗项目与单价；任何一名牙医的资质都能在开单前被程序校验。
+这套业务结构只有 17 张表，却同时满足了三件事：任何一次取消都能按诊所、按牙医、按时间切片统计；任何一笔收费都能回溯到具体就诊、具体治疗项目与单价；任何一名牙医的资质都能在开单前被程序校验。
 
 \subsubsection{技术支撑表：账号、审计、排班与支付}
 
-上面 16 张表覆盖的是\textbf{问题域}——患者、预约、就诊、结算这些业务概念。但要让它真的跑起来，还差五张\textbf{技术支撑表}。它们不进分析类图，因为它们是系统的内部机制而不是业务概念；可一旦缺了，下面几处需求就无处落地：
+上面 17 张表覆盖的是\textbf{问题域}——患者、预约、就诊、结算这些业务概念。但要让它真的跑起来，还差五张\textbf{技术支撑表}。它们不进分析类图，因为它们是系统的内部机制而不是业务概念；可一旦缺了，下面几处需求就无处落地：
 
 \begin{itemize}[leftmargin=1.8em,topsep=3pt,itemsep=2pt]
-  \item UC-02 的前置条件写着“前台接待员已登录系统”，可是 16 张表里没有任何账号——\texttt{user\_account} 补上登录凭证与角色，employee 表只管人事，不管口令。
+  \item UC-02 的前置条件写着“前台接待员已登录系统”，可是 17 张表里没有任何账号——\texttt{user\_account} 补上登录凭证与角色，employee 表只管人事，不管口令。
   \item UC-03 的设计约束要求“记录每次就诊的操作留痕”，UC-04 要求“红冲可稽核”——\texttt{audit\_log} 记下谁、什么时间、对哪条记录、把什么改成了什么。
   \item \texttt{availableSlots()} 要算可约时段，得先知道诊所几点开门、哪位牙医哪天在哪个店——\texttt{clinic\_hours} 与 \texttt{dentist\_schedule} 提供这两个前提，\texttt{schedule\_note} 那种自由文本算不出时段。
   \item UC-04 允许部分支付、失败重试与退款，一张结算单必然对应多笔资金动作——\texttt{payment} 作为流水表承接，statement 上只留一个汇总状态。
@@ -1715,7 +1716,7 @@ UC-10 & 患者自助预约控制 & 预约、患者、牙医、诊所 & 与 UC-02
 }
 \end{table}
 
-五张表都不参与业务规则判断，但都参与\textbf{边界条件}：账号决定“谁能做”，审计决定“事后能不能查”，排班决定“这个时段到底存不存在”，支付流水决定“这笔钱到底收没收到”。把这五张表排除在外，前面 16 张表看着漂亮，系统却登不进、排不了班、对不上账。
+五张表都不参与业务规则判断，但都参与\textbf{边界条件}：账号决定“谁能做”，审计决定“事后能不能查”，排班决定“这个时段到底存不存在”，支付流水决定“这笔钱到底收没收到”。把这五张表排除在外，前面 17 张表看着漂亮，系统却登不进、排不了班、对不上账。
 
 有一个细节值得单独说：\textbf{时段冲突靠约束而不是靠代码自觉}。预约表上 \texttt{(employee\_id, appointment\_time)} 的复合索引只能加快查询，挡不住两个人同时提交同一时段。真正的防线是数据库层的一条排他约束——PostgreSQL 用 \texttt{EXCLUDE USING gist} 对“牙医 + 时间区间”做互斥，MySQL 8 没有这个能力，只能退而求其次：把预约切成 30 分钟的时段行（或加一张 slot 表），在 \texttt{(employee\_id, slot\_start)} 上加唯一键，并在事务中先 \texttt{SELECT \dots\ FOR UPDATE} 锁住该牙医当日排班。两种做法都成立，但都不能只写一句“系统保证不冲突”就算完。
 
@@ -1804,7 +1805,7 @@ UC-10 & 患者自助预约控制 & 预约、患者、牙医、诊所 & 与 UC-02
 \caption{数据库图表（患者与诊疗域）：表、主键与外键}
 \end{figure}
 
-\figtag{图 12 说明} 这幅图集中展示了三张关联表与一处自反关系。患者过敏记录表是患者与过敏症之间多对多关系的落点，两张外键列 patient\_id、allergen\_id 之外，还带着严重程度与反应描述；就诊治疗明细表是就诊与治疗项目之间多对多关系的落点，它同时受组合规则的约束，visit\_id 必须非空，并额外保存\textbf{牙位}与\textbf{单位价格快照}——前者是牙科“按牙追溯病史”的最小单位，后者让历史单据在目录调价后仍能逐行复算（详见 6.11 节对这条“正当冗余”的说明）；预约表、就诊表上的 patient\_id、employee\_id、clinic\_id，则分别来自“患者 $\rightarrow$ 预约/就诊”“牙医 $\rightarrow$ 预约/就诊”“诊所 $\rightarrow$ 预约/就诊”三组一对多关联。结算单表上的“红冲指向原单”是全图唯一的自引用外键，红字单靠它指回被冲销的单据。除这两处有意为之的快照与自反之外，图中没有冗余列：每一列要么是主键，要么是某个关联的外键，要么是该实体自身携带的领域属性——这正是对象建模正确时映射结果自然满足 3NF 的原因。
+\figtag{图 12 说明} 这幅图集中展示了三张关联表与一处自反关系（另一张关联表 appointment\_treatment 与就诊治疗明细同构，都是“单据 $	imes$ 治疗项目”的落点，为避免重复连线在图中从略，其列定义见本节“患者与诊疗域”表清单第 9 行与 6.10 节 DDL）。患者过敏记录表是患者与过敏症之间多对多关系的落点，两张外键列 patient\_id、allergen\_id 之外，还带着严重程度与反应描述；就诊治疗明细表是就诊与治疗项目之间多对多关系的落点，它同时受组合规则的约束，visit\_id 必须非空，并额外保存\textbf{牙位}与\textbf{单位价格快照}——前者是牙科“按牙追溯病史”的最小单位，后者让历史单据在目录调价后仍能逐行复算（详见 6.11 节对这条“正当冗余”的说明）；预约表、就诊表上的 patient\_id、employee\_id、clinic\_id，则分别来自“患者 $\rightarrow$ 预约/就诊”“牙医 $\rightarrow$ 预约/就诊”“诊所 $\rightarrow$ 预约/就诊”三组一对多关联。结算单表上的“红冲指向原单”是全图唯一的自引用外键，红字单靠它指回被冲销的单据。除这两处有意为之的快照与自反之外，图中没有冗余列：每一列要么是主键，要么是某个关联的外键，要么是该实体自身携带的领域属性——这正是对象建模正确时映射结果自然满足 3NF 的原因。
 \subsection{数据字典}
 
 两份图表给出了表与表之间的关系，下表进一步给出每张表每一列的数据类型与约束，作为实施阶段的直接依据。
@@ -1825,7 +1826,7 @@ UC-10 & 患者自助预约控制 & 预约、患者、牙医、诊所 & 与 UC-02
 \multicolumn{4}{@{}l}{\textbf{\textcolor{adcblue!90}{employee　员工}}}\\
 employee\_id & INT & PK，自增 & 员工编号（代理主键） \\
 full\_name & VARCHAR(30) & NOT NULL & 姓名 \\
-gender & CHAR(1) & NOT NULL & 性别（M / F） \\
+gender & CHAR(1) & NOT NULL & 性别（男 / 女） \\
 phone & VARCHAR(20) & NOT NULL & 联系电话 \\
 hire\_date & DATE & NOT NULL & 入职日期 \\
 status & VARCHAR(10) & NOT NULL & 在职状态（在职 / 离职） \\
@@ -1845,6 +1846,7 @@ position\_name & VARCHAR(30) & NOT NULL & 职务名称 \\
 scope & VARCHAR(50) & & 分管范围 \\
 \multicolumn{4}{@{}l}{\textbf{\textcolor{adcblue!90}{clinic　诊所}}}\\
 clinic\_id & INT & PK，自增 & 诊所编号（代理主键） \\
+clinic\_code & VARCHAR(6) & NOT NULL，UNIQUE & 诊所代码（业务单号前缀，如 GZTH；不随改名变化） \\
 clinic\_name & VARCHAR(40) & NOT NULL & 诊所名称 \\
 city & VARCHAR(20) & NOT NULL & 所在城市 \\
 address & VARCHAR(80) & & 详细地址 \\
@@ -1890,7 +1892,7 @@ employee\_id + qualification\_id & --- & UNIQUE & 同一项资质对同一牙医
 \multicolumn{4}{@{}l}{\textbf{\textcolor{adcblue!90}{patient　患者}}}\\
 patient\_id & INT & PK，自增 & 患者编号（代理主键） \\
 full\_name & VARCHAR(30) & NOT NULL & 姓名 \\
-gender & CHAR(1) & NOT NULL & 性别（M / F） \\
+gender & CHAR(1) & NOT NULL & 性别（男 / 女） \\
 birth\_date & DATE & & 出生日期 \\
 phone & VARCHAR(20) & NOT NULL & 联系电话 \\
 email & VARCHAR(50) & & 电子邮箱（识别回头客的首选字段） \\
@@ -1898,6 +1900,8 @@ address & VARCHAR(80) & & 通讯地址 \\
 wx\_openid & VARCHAR(64) & UNIQUE & 微信 openid（小程序登录标识；未使用小程序的在店患者为空） \\
 created\_date & DATE & NOT NULL & 建档日期 \\
 note & VARCHAR(120) & & 备注 \\
+emergency\_\discretionary{}{}{}contact\_\discretionary{}{}{}name & VARCHAR(30) & & 紧急联系人姓名 \\
+emergency\_\discretionary{}{}{}contact\_\discretionary{}{}{}phone & VARCHAR(20) & & 紧急联系人电话 \\
 \multicolumn{4}{@{}l}{\textbf{\textcolor{adcblue!90}{allergen　过敏症}}}\\
 allergen\_id & INT & PK，自增 & 过敏症编号（代理主键） \\
 allergen\_name & VARCHAR(30) & NOT NULL，UNIQUE & 过敏症名称 \\
@@ -1922,6 +1926,11 @@ channel & VARCHAR(10) & NOT NULL & 预约渠道（电话 / 到店 / 小程序）
 status & VARCHAR(10) & NOT NULL & 预约状态（待就诊 / 已就诊 / 未到诊 / 已取消） \\
 created\_time & DATETIME & NOT NULL & 登记时间 \\
 cancel\_reason & VARCHAR(60) & & 取消原因 \\
+note & VARCHAR(120) & & 就诊备注（前台受理时记录的患者诉求） \\
+\multicolumn{4}{@{}l}{\textbf{\textcolor{adcblue!90}{appointment\_treatment　预约治疗需求（关联表）}}}\\
+at\_id & INT & PK，自增 & 关联编号（代理主键） \\
+appointment\_id & INT & FK$\rightarrow$appointment，NOT NULL & 预约编号 \\
+item\_id & INT & FK$\rightarrow$treatment\_item & 治疗项目编号（联合唯一） \\
 \multicolumn{4}{@{}l}{\textbf{\textcolor{adcblue!90}{visit　就诊}}}\\
 visit\_id & INT & PK，自增 & 就诊编号（代理主键） \\
 appointment\_id & INT & FK$\rightarrow$appointment，UNIQUE & 来源预约（一次预约最多对应一次就诊） \\
@@ -1942,6 +1951,7 @@ unit\_price & DECIMAL(10,2) & NOT NULL & 单位价格（目录当前价） \\
 contraindication & VARCHAR(80) & & 禁忌材料（如“镍”“树脂”），过敏冲突校验的依据 \\
 is\_active & TINYINT & NOT NULL，默认 1 & 是否启用 \\
 description & VARCHAR(120) & & 项目说明 \\
+required\_\discretionary{}{}{}qualification\_\discretionary{}{}{}id & INT & FK$\rightarrow$qualification & 施治所需最低资质，空为不限 \\
 \multicolumn{4}{@{}l}{\textbf{\textcolor{adcblue!90}{visit\_treatment　就诊治疗明细（关联表）}}}\\
 vt\_id & INT & PK，自增 & 明细编号（代理主键） \\
 visit\_id & INT & FK$\rightarrow$visit，NOT NULL & 就诊编号（组合关系，不可为空） \\
@@ -2029,7 +2039,7 @@ fail\_reason & VARCHAR(100) & & 失败原因（原样呈现在收银界面） \\
 }
 \subsection{建表脚本}
 
-映射结果可以直接写成数据定义语句。下表按“被引用表先建”的顺序给出 16 张业务表与 5 张技术支撑表的建表脚本，字段命名与数据字典一一对应；注释中的中文名称即数据字典里的中文含义，便于开发时对照。注意最后一段的五张表有先后依赖（audit\_log 引用 user\_account，payment 引用 statement），建表顺序不能颠倒。
+映射结果可以直接写成数据定义语句。下表按“被引用表先建”的顺序给出 17 张业务表与 5 张技术支撑表的建表脚本，字段命名与数据字典一一对应；注释中的中文名称即数据字典里的中文含义，便于开发时对照。注意最后一段的五张表有先后依赖（audit\_log 引用 user\_account，payment 引用 statement），建表顺序不能颠倒。
 
 \begin{lstlisting}[style=sql]
 CREATE TABLE employee (
@@ -2043,6 +2053,7 @@ CREATE TABLE employee (
 
 CREATE TABLE clinic (
   clinic_id    INT AUTO_INCREMENT PRIMARY KEY COMMENT '诊所编号',
+  clinic_code  VARCHAR(6)  NOT NULL UNIQUE COMMENT '诊所代码（业务单号前缀）',
   clinic_name  VARCHAR(40) NOT NULL COMMENT '诊所名称',
   city         VARCHAR(20) NOT NULL COMMENT '所在城市',
   address      VARCHAR(80) COMMENT '详细地址',
@@ -2117,7 +2128,9 @@ CREATE TABLE patient (
   address      VARCHAR(80) COMMENT '通讯地址',
   wx_openid    VARCHAR(64) UNIQUE COMMENT '微信 openid（小程序登录标识）',
   created_date DATE        NOT NULL COMMENT '建档日期',
-  note         VARCHAR(120) COMMENT '备注'
+  note         VARCHAR(120) COMMENT '备注',
+  emergency_contact_name  VARCHAR(30) COMMENT '紧急联系人姓名',
+  emergency_contact_phone VARCHAR(20) COMMENT '紧急联系人电话'
 ) COMMENT '患者';
 
 CREATE TABLE allergen (
@@ -2134,7 +2147,10 @@ CREATE TABLE treatment_item (
   unit_price       DECIMAL(10,2) NOT NULL COMMENT '单位价格',
   contraindication VARCHAR(80) COMMENT '禁忌材料',
   is_active        TINYINT NOT NULL DEFAULT 1 COMMENT '是否启用',
-  description      VARCHAR(120) COMMENT '项目说明'
+  description      VARCHAR(120) COMMENT '项目说明',
+  required_qualification_id INT COMMENT '施治所需最低资质，空表示不限',
+  CONSTRAINT fk_ti_qualification FOREIGN KEY (required_qualification_id)
+      REFERENCES qualification(qualification_id)
 ) COMMENT '治疗项目';
 
 CREATE TABLE appointment (
@@ -2149,6 +2165,7 @@ CREATE TABLE appointment (
   status           VARCHAR(10) NOT NULL COMMENT '预约状态',
   created_time     DATETIME NOT NULL COMMENT '登记时间',
   cancel_reason    VARCHAR(60) COMMENT '取消原因',
+  note             VARCHAR(120) COMMENT '就诊备注',
   KEY idx_dentist_time (employee_id, appointment_time),
   KEY idx_clinic_time  (clinic_id, appointment_time),
   KEY idx_patient_time (patient_id, appointment_time),
@@ -2156,6 +2173,15 @@ CREATE TABLE appointment (
   FOREIGN KEY (employee_id) REFERENCES dentist(employee_id),
   FOREIGN KEY (clinic_id)   REFERENCES clinic(clinic_id)
 ) COMMENT '预约';
+
+CREATE TABLE appointment_treatment (
+  at_id          INT AUTO_INCREMENT PRIMARY KEY COMMENT '关联编号',
+  appointment_id INT NOT NULL COMMENT '预约',
+  item_id        INT NOT NULL COMMENT '治疗项目（治疗需求）',
+  UNIQUE KEY uk_appointment_item (appointment_id, item_id),
+  FOREIGN KEY (appointment_id) REFERENCES appointment(appointment_id),
+  FOREIGN KEY (item_id)        REFERENCES treatment_item(item_id)
+) COMMENT '预约治疗需求（关联表）';
 
 CREATE TABLE visit (
   visit_id         INT AUTO_INCREMENT PRIMARY KEY COMMENT '就诊编号',
