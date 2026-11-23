@@ -1117,7 +1117,7 @@ UC-10 & 患者自助预约 $\bigstar$ & 患者 & 患者在小程序中查看可�
 牙医 Dentist & 执业证书编号、专业方向、职称 & UC-02、UC-03、UC-08 \\
 前台接待员 Receptionist & 岗位等级、可受理的业务范围 & UC-01、UC-02、UC-04 \\
 总部管理者 Administrator & 职务名称、分管范围 & UC-06、UC-07、UC-08、UC-09 \\
-诊所 Clinic & 诊所编号、诊所名称、所在城市、详细地址、联系电话、开业日期、诊椅数量、营业状态 & UC-02、UC-07、UC-09 \\
+诊所 Clinic & 诊所编号、诊所名称、所在城市、详细地址、主管姓名、联系电话、电子邮箱、办公面积、开业日期、诊椅数量、营业状态 & UC-02、UC-07、UC-09 \\
 牙医执业点 DentistClinic & 执业点编号、排班说明、是否主要执业点 & UC-02、UC-06 \\
 资质 Qualification & 资质编号、资质名称、颁发机构、有效期至 & UC-06 \\
 牙医资质 DentistQualification & 资质记录编号、取得日期、证书编号 & UC-06、UC-08 \\
@@ -1227,7 +1227,7 @@ UC-10 & 患者自助预约 $\bigstar$ & 患者 & 患者在小程序中查看可�
   \clsbox{adm}{(9.6,-1.0)}{3.0}{总部管理者\\{\tiny\mdseries Administrator}}{职务名称\\分管范围}
   \clsbox{qua}{(13.6,-1.0)}{3.0}{资质\\{\tiny\mdseries Qualification}}{资质编号\\资质名称\\颁发机构\\有效期至}
 
-  \clsbox{cln}{(1.6,-6.4)}{3.0}{诊所\\{\tiny\mdseries Clinic}}{诊所编号\\诊所名称\\所在城市\\详细地址\\联系电话\\开业日期\\诊椅数量\\营业状态}
+  \clsbox{cln}{(1.6,-6.4)}{3.0}{诊所\\{\tiny\mdseries Clinic}}{诊所编号\\诊所名称\\城市·地址\\主管·电话·邮箱\\开业日期·诊椅·面积\\营业状态}
   \clsbox{rcp}{(5.6,-6.4)}{3.0}{前台接待员\\{\tiny\mdseries Receptionist}}{岗位等级\\可受理业务范围}
   \clsbox{dqu}{(9.6,-6.4)}{3.0}{牙医资质\\{\tiny\mdseries DentistQualification}}{资质记录编号\\取得日期\\证书编号}
   \clsbox{dcl}{(13.6,-6.4)}{3.0}{牙医执业点\\{\tiny\mdseries DentistClinic}}{执业点编号\\排班说明\\是否主要执业点}
@@ -1730,7 +1730,7 @@ UC-10 & 患者自助预约控制 & 预约、患者、牙医、诊所 & 与 UC-02
   \tblbox{adm}{(9.6,-1.0)}{3.0}{总部管理者\\{\tiny\mdseries administrator}}{\pk{员工编号}（兼外键）\\职务名称\\分管范围}
   \tblbox{qua}{(13.6,-1.0)}{3.0}{资质\\{\tiny\mdseries qualification}}{\pk{资质编号}\\资质名称\\颁发机构\\有效期至}
 
-  \tblbox{cln}{(1.6,-7.0)}{3.0}{诊所\\{\tiny\mdseries clinic}}{\pk{诊所编号}\\诊所名称\\所在城市\\详细地址\\联系电话\\开业日期\\诊椅数量\\营业状态}
+  \tblbox{cln}{(1.6,-7.0)}{3.0}{诊所\\{\tiny\mdseries clinic}}{\pk{诊所编号}\\诊所代码\\诊所名称\\城市·地址\\主管·电话·邮箱\\开业日期·诊椅·面积\\营业状态}
   \tblbox{rcp}{(5.6,-7.0)}{3.0}{前台接待员\\{\tiny\mdseries receptionist}}{\pk{员工编号}（兼外键）\\\fk{诊所编号}\\岗位等级\\可受理业务范围}
   \tblbox{dqu}{(9.6,-7.0)}{3.0}{牙医资质\\{\tiny\mdseries dentist\_qualification}}{\pk{资质记录编号}\\\fk{员工编号}\\\fk{资质编号}\\取得日期\\证书编号}
   \tblbox{dcl}{(13.6,-7.0)}{3.0}{牙医执业点\\{\tiny\mdseries dentist\_clinic}}{\pk{执业点编号}\\\fk{员工编号}\\\fk{诊所编号}\\排班说明\\是否主要执业点}
@@ -1851,9 +1851,12 @@ clinic\_name & VARCHAR(40) & NOT NULL & 诊所名称 \\
 city & VARCHAR(20) & NOT NULL & 所在城市 \\
 address & VARCHAR(80) & & 详细地址 \\
 phone & VARCHAR(20) & & 联系电话 \\
+manager\_name & VARCHAR(30) & & 主管姓名（诊所主管是岗位，不是员工的上级节点） \\
+email & VARCHAR(50) & & 诊所邮箱 \\
+area\_sqm & DECIMAL(6,1) & $>0$ & 办公面积（平方米） \\
 open\_date & DATE & & 开业日期 \\
 chair\_count & INT & & 诊椅数量 \\
-status & VARCHAR(10) & NOT NULL & 营业状态（营业 / 筹备） \\
+status & VARCHAR(10) & NOT NULL & 营业状态（营业 / 筹备 / 关闭） \\
 \multicolumn{4}{@{}l}{\textbf{\textcolor{adcblue!90}{dentist\_clinic　牙医执业点（关联表）}}}\\
 dc\_id & INT & PK，自增 & 执业点编号（代理主键） \\
 employee\_id & INT & FK$\rightarrow$dentist & 牙医编号 \\
@@ -2058,9 +2061,13 @@ CREATE TABLE clinic (
   city         VARCHAR(20) NOT NULL COMMENT '所在城市',
   address      VARCHAR(80) COMMENT '详细地址',
   phone        VARCHAR(20) COMMENT '联系电话',
+  manager_name VARCHAR(30) COMMENT '主管姓名',
+  email        VARCHAR(50) COMMENT '诊所邮箱',
+  area_sqm     DECIMAL(6,1) COMMENT '办公面积（平方米）',
   open_date    DATE        COMMENT '开业日期',
   chair_count  INT         COMMENT '诊椅数量',
-  status       VARCHAR(10) NOT NULL COMMENT '营业状态'
+  status       VARCHAR(10) NOT NULL COMMENT '营业状态',
+  CONSTRAINT ck_clinic_area CHECK (area_sqm IS NULL OR area_sqm > 0)
 ) COMMENT '诊所';
 
 CREATE TABLE qualification (
@@ -2520,7 +2527,7 @@ CREATE TABLE payment (
 \caption{表示层的窗体导航图}
 \end{figure}
 
-\figtag{图 14 说明} 十个人工操作用例各自对应一个窗体，没有“万能界面”；后台批处理（UC-08 的季度汇总、逾期未到诊判定）不占窗体，由时间触发。员工侧导航只有两层——工作台选业务域，业务域选窗体——前台完成一次标准预约最多四次点击进入表单，与 UC-02 质量需求里“不超过 6 次人机交互”的指标相容。工作台按角色划分，也就等于把权限的第一道闸放在了入口：牙医登录后只看得到“到诊与治疗”，看不到结算与收款，更看不到总部报表。患者端刻意画在图的下方而不是挂在“登录”之下，因为它是\textbf{另一个小程序}：入口是微信授权而非员工账号，页面只有“自助预约”与“我的预约·取消”两屏，且两者都只能看到本人的数据——这一层隔离不靠界面隐藏，而靠服务端按 openid 过滤。
+\figtag{图 14 说明} 员工侧的九个人工操作用例各自对应一个窗体，没有“万能界面”；UC-10 落在患者端小程序的两屏上（自助预约、我的预约·取消），后台批处理（逾期未到诊判定）不占窗体，由时间触发。员工侧导航只有两层——工作台选业务域，业务域选窗体——前台完成一次标准预约最多四次点击进入表单，与 UC-02 质量需求里“不超过 6 次人机交互”的指标相容。工作台按角色划分，也就等于把权限的第一道闸放在了入口：牙医登录后只看得到“到诊与治疗”，看不到结算与收款，更看不到总部报表。患者端刻意画在图的下方而不是挂在“登录”之下，因为它是\textbf{另一个小程序}：入口是微信授权而非员工账号，页面只有“自助预约”与“我的预约·取消”两屏，且两者都只能看到本人的数据——这一层隔离不靠界面隐藏，而靠服务端按 openid 过滤。
 
 {\small
 \begin{longtable}{@{}L{2.35cm}L{1.55cm}L{3.85cm}L{3.45cm}L{2.95cm}@{}}
@@ -2540,8 +2547,8 @@ CREATE TABLE payment (
 到诊登记 & UC-05 & 预约编号、到诊 / 未到诊 / 取消 & 当日到诊列表、取消率试算 & 只改状态，不改治疗内容；取消须填原因 \\
 到诊与治疗 & UC-03 & 预约编号或散客、主诉、治疗项目、牙位与单位数量 & 过敏警示、治疗清单与试算金额 & 单价来自目录，界面不可编辑；牙位从牙位图选取 \\
 结算与收款 & UC-04 & 支付方式、折扣、保险信息 & 结算单明细、应付总额、支付结果 & 金额只读；失败原因原样呈现；红冲另开负单 \\
-资质维护 & UC-06 & 证书编号、类别、有效期 & 资质列表与到期提醒 & 到期前 60 天高亮 \\
-诊所信息 & UC-07 & 名称、地址、诊椅数、营业状态 & 诊所清单 & 关闭诊所前校验未来预约 \\
+资质维护 & UC-06 & 执业证书编号、职称与专业方向；资质、取得日期与证书编号；执业点与排班说明 & 资质清单、执业点清单、到期提醒 & 重复授予拒绝；主执业点唯一；撤销资质或执业点前校验未来预约 \\
+诊所信息 & UC-07 & 名称、城市、地址、主管、电话、邮箱、办公面积、诊椅、营业状态 & 诊所清单、保存结果 & 代码建档后只读；关闭前校验未来预约 \\
 季度业绩 & UC-08 & 季度、牙医 & 收入、成本、运营费用、激励金额 & 只读报表，可导出 \\
 经营报表 & UC-09 & 时间范围、诊所、治疗类别 & 取消率、治疗量、收入对比 & 只读；跨诊所口径统一 \\
 自助预约（小程序） & UC-10 & 诊所、治疗需求、时段、牙医 & 可约时段、预约单号、就诊须知 & 只显示本人预约；单价只读；取消限 24 小时前 \\
