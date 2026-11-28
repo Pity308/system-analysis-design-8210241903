@@ -55,7 +55,9 @@ services:
       # 与配置里的 adc.auth.token-secret 对不上，等于悄悄用了默认密钥。
       SPRING_APPLICATION_JSON: >-
         {"adc":{"auth":{"token-secret":"${ADC_AUTH_TOKEN_SECRET}"},
-                "wx":{"token-secret":"${ADC_WX_TOKEN_SECRET}"}}}
+                "wx":{"token-secret":"${ADC_WX_TOKEN_SECRET}",
+                      "app-id":"${ADC_WX_APP_ID:-}",
+                      "app-secret":"${ADC_WX_APP_SECRET:-}"}}}
     expose:
       - "8080"
     restart: unless-stopped
