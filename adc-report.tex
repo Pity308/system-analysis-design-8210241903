@@ -193,10 +193,45 @@
     \draw[thick,adcblue] (0,0.24) -- (0.22,-0.06);
     \node[font=\scriptsize,align=center,text=black!85,fill=white,inner sep=1pt] at (0,-0.40) {#3};
   \end{scope}}
-% 生命线
+% 生命线：虚线必须清晰可见——原先 adcblue!45 太淡，PDF 里几乎看不见。
+% 加粗 + 加深，并把虚线一直画到图底部（#3 是底部 y 坐标）。
 \newcommand{\lifeline}[4]{%
   \node[llbox] (#4) at (#1,0) {#2};
-  \draw[adcblue!45,dashed] (#1,-0.42) -- (#1,#3);}
+  \draw[adcblue!80,line width=0.85pt,dash pattern=on 3pt off 2.4pt]
+    (#1,-0.42) -- (#1,#3);}
+% 激活条（生命线上的竖直矩形）：#1=x 坐标，#2=上端 y（较靠近 0），#3=下端 y（更负）。
+% 白色填充盖住生命线一段，表示该对象在这段时间里正在执行操作。
+\newcommand{\activ}[3]{%
+  \draw[fill=white,draw=adcblue!80,line width=0.6pt]
+    (#1-0.085,#2) rectangle (#1+0.085,#3);}
+% Rose 风格业务序列图头部：#1=x，#2=名字，#3=图标(0=圆圈+火柴人/业务工人,1=圆圈+系统斜线/业务实体,2=裸火柴人/业务执行者)，#4=生命线底端 y，#5=节点名
+% 业务执行者（如患者）在组织外部，按示例只画裸火柴人、不套圆圈。
+\newcommand{\roseHead}[5]{%
+  \begin{scope}[shift={(#1,0)}]
+    \ifnum#3=2\relax
+      % 业务执行者：不带圆圈的火柴人
+      \draw[adcblue!85,line width=0.9pt] (0,0.62) circle (0.11);
+      \draw[adcblue!85,line width=0.9pt] (0,0.51) -- (0,0.28);
+      \draw[adcblue!85,line width=0.9pt] (-0.19,0.43) -- (0.19,0.43);
+      \draw[adcblue!85,line width=0.9pt] (0,0.28) -- (-0.17,0.10);
+      \draw[adcblue!85,line width=0.9pt] (0,0.28) -- (0.17,0.10);
+    \else
+      \draw[adcblue!80,line width=0.8pt,fill=adclight!38] (0,0.44) circle (0.44);
+      \ifnum#3=0\relax
+        \draw[adcblue!85,line width=0.75pt] (0,0.60) circle (0.09);
+        \draw[adcblue!85,line width=0.75pt] (0,0.51) -- (0,0.30);
+        \draw[adcblue!85,line width=0.75pt] (-0.17,0.44) -- (0.17,0.44);
+        \draw[adcblue!85,line width=0.75pt] (0,0.30) -- (-0.15,0.13);
+        \draw[adcblue!85,line width=0.75pt] (0,0.30) -- (0.15,0.13);
+      \else
+        \draw[adcblue!70,line width=0.75pt] (-0.10,0.14) -- (0.34,0.46);
+      \fi
+    \fi
+    \node[anchor=north,text=black!88,font=\fontsize{8}{10}\selectfont] at (0,-0.02)
+      {\underline{\mbox{:}#2}};
+  \end{scope}
+  \coordinate (#5) at (#1,0);
+  \draw[adcblue!80,line width=0.85pt,dash pattern=on 3pt off 2.4pt] (#1,-0.42) -- (#1,#4);}
 % 消息
 \newcommand{\msg}[5][msg]{%
   \draw[#1, shorten >= 1.5pt] (#2,#3) -- (#4,#3) node[midway,above=3pt,font=\scriptsize,text=black!88,fill=white,inner sep=1.8pt] {#5};}
@@ -252,11 +287,11 @@
     \end{scope}
 
     % ---- 顶部信息 ----
-    \node[anchor=west,text=white,font=\fontsize{15.5}{19}\selectfont\bfseries] at (24,27) {系统分析与设计};
-    \node[anchor=west,text=white,font=\fontsize{7.6}{10}\selectfont] at (24,35)
-      {\addfontfeatures{LetterSpace=22}SYSTEM ANALYSIS AND DESIGN};
-    \draw[white,opacity=0.45,line width=0.7pt] (24,41.5) -- (69,41.5);
-    \node[anchor=east,text=white,font=\fontsize{10.5}{13}\selectfont] at (186,27) {2026 年 10 月};
+    \node[anchor=west,text=white,font=\fontsize{17}{21}\selectfont\bfseries] at (24,27) {系统分析与设计};
+    \node[anchor=west,text=white,font=\fontsize{8.5}{11}\selectfont] at (24,35)
+      {\addfontfeatures{LetterSpace=20}SYSTEM ANALYSIS AND DESIGN};
+    \draw[white,opacity=0.45,line width=0.7pt] (24,41.5) -- (72,41.5);
+    \node[anchor=east,text=white,font=\fontsize{11.5}{14}\selectfont] at (186,27) {2026 年 10 月};
 
     % ---- 徽标 ----
     \draw[white,opacity=0.55,line width=0.6pt] (170,58) circle (10);
@@ -265,47 +300,59 @@
     \node[text=white,opacity=0.55,font=\fontsize{5.2}{7}\selectfont] at (170,73)
       {\addfontfeatures{LetterSpace=8}ANDREW'S DENTAL CHAIN};
 
+    % ---- 牙科元素：一颗简洁的牙齿图标（半透明，作为主视觉装饰）----
+    \begin{scope}[shift={(146,60)},scale=1.15]
+      \draw[white,opacity=0.32,line width=1.1pt,fill=white,fill opacity=0.05]
+        (-3.4,2.2)
+        .. controls (-4.2,0.5) and (-3.9,-1.4) .. (-3.0,-2.6)
+        .. controls (-2.5,-3.4) and (-2.3,-5.2) .. (-1.7,-5.4)
+        .. controls (-1.1,-5.5) and (-0.9,-3.6) .. (-0.5,-2.8)
+        .. controls (-0.2,-2.2) and (0.2,-2.2) .. (0.5,-2.8)
+        .. controls (0.9,-3.6) and (1.1,-5.5) .. (1.7,-5.4)
+        .. controls (2.3,-5.2) and (2.5,-3.4) .. (3.0,-2.6)
+        .. controls (3.9,-1.4) and (4.2,0.5) .. (3.4,2.2)
+        .. controls (2.0,3.0) and (-2.0,3.0) .. cycle;
+      \draw[white,opacity=0.16,line width=0.7pt]
+        (-2.2,0.8) .. controls (0,1.4) and (1.7,1.0) .. (2.5,0.2);
+    \end{scope}
+
     % ---- 主标题 ----
     \node[anchor=west,text=white,opacity=0.72,font=\fontsize{10.5}{13}\selectfont] at (24,60)
       {ADC 牙科连锁信息管理系统};
-    \node[anchor=west,text=white,font=\fontsize{38}{42}\selectfont\bfseries] at (24,79) {安德鲁牙科连锁};
-    \node[anchor=west,text=white,opacity=0.86,font=\fontsize{19.5}{24}\selectfont] at (24,96)
+    \node[anchor=west,text=white,font=\fontsize{40}{44}\selectfont\bfseries] at (24,79) {安德鲁牙科连锁};
+    \node[anchor=west,text=white,opacity=0.86,font=\fontsize{21}{25}\selectfont] at (24,96)
       {面向规模化扩张的数据设计};
     \draw[white,opacity=0.26,line width=0.6pt] (24,103) -- (186,103);
 
-    % ---- 报告信息 ----
-    \node[anchor=west,text=adcblue,font=\fontsize{10.6}{13.5}\selectfont\bfseries] at (24,125)
+    % ---- 报告信息 ----（删掉底部说明段后整体下移、字号加大，填补留白）
+    \node[anchor=west,text=adcblue,font=\fontsize{12.5}{15}\selectfont\bfseries] at (24,127)
       {\addfontfeatures{LetterSpace=14}报告信息};
-    \draw[adcblue!12,line width=0.6pt] (24,134) -- (186,134);
-    \draw[adcblue!12,line width=0.6pt] (24,160) -- (186,160);
-    \draw[adcblue!12,line width=0.6pt] (24,186) -- (186,186);
-    \draw[adcblue!12,line width=0.6pt] (105,134) -- (105,186);
+    \draw[adcblue!12,line width=0.6pt] (24,137) -- (186,137);
+    \draw[adcblue!12,line width=0.6pt] (24,169) -- (186,169);
+    \draw[adcblue!12,line width=0.6pt] (24,201) -- (186,201);
+    \draw[adcblue!12,line width=0.6pt] (105,137) -- (105,201);
 
     \foreach \x/\lab/\val/\y in {%
-      30/姓名/马博晨/144,%
-      111/学号/8210241903/144,%
-      30/班级/信管T2401班/170,%
-      111/指导教师/毕文杰/170}{%
-      \node[anchor=base west,text=adcgray,font=\fontsize{8.6}{11}\selectfont] at (\x,\y)
+      30/姓名/马博晨/149,%
+      111/学号/8210241903/149,%
+      30/班级/信管T2401班/181,%
+      111/指导教师/毕文杰/181}{%
+      \node[anchor=base west,text=adcgray,font=\fontsize{10.5}{13}\selectfont] at (\x,\y)
         {\addfontfeatures{LetterSpace=6}\lab};
-      \node[anchor=base west,text=black!86,font=\fontsize{13.5}{17}\selectfont\bfseries] at (\x,\y+9.4) {\val};
+      \node[anchor=base west,text=black!86,font=\fontsize{16}{19}\selectfont\bfseries] at (\x,\y+11) {\val};
     }
 
     % ---- 报告结构 ----
-    \node[anchor=west,text=adcblue,font=\fontsize{10.6}{13.5}\selectfont\bfseries] at (24,193.5)
+    \node[anchor=west,text=adcblue,font=\fontsize{12.5}{15}\selectfont\bfseries] at (24,210)
       {\addfontfeatures{LetterSpace=14}报告结构};
-    \draw[adcblue!20,line width=0.6pt] (24,201) -- (186,201);
-    \draw[adcblue!20,line width=0.6pt] (24,215) -- (186,215);
+    \draw[adcblue!20,line width=0.6pt] (24,218) -- (186,218);
+    \draw[adcblue!20,line width=0.6pt] (24,238) -- (186,238);
     \foreach \x in {64.5,105,145.5}{%
-      \draw[adcblue!12,line width=0.6pt] (\x,201) -- (\x,215);}
+      \draw[adcblue!12,line width=0.6pt] (\x,218) -- (\x,238);}
     \foreach \x/\ltr/\nm in {24/A/业务建模, 64.5/B/需求, 105/C/分析, 145.5/D/设计}{%
-      \node[anchor=west,text=adcblue,font=\fontsize{12.5}{15}\selectfont\bfseries] at (\x+6.5,208) {\ltr};
-      \node[anchor=west,text=black!80,font=\fontsize{9.6}{12}\selectfont] at (\x+14.5,208) {\nm};
+      \node[anchor=west,text=adcblue,font=\fontsize{14}{17}\selectfont\bfseries] at (\x+6.5,228) {\ltr};
+      \node[anchor=west,text=black!80,font=\fontsize{11.5}{14}\selectfont] at (\x+14.5,228) {\nm};
     }
-
-    \node[anchor=north west,text=black!62,font=\fontsize{9.4}{15.5}\selectfont,text width=162mm] at (24,227)
-      {从业务建模到数据设计的一次完整实践：愿景、业务图、需求规约、分析图与数据库图表，\\[3pt]
-       以及数据层、业务层与表示层的分层设计交付。};
 
     % ---- 页脚 ----
     \draw[adcblue!16,line width=0.6pt] (24,266) -- (186,266);
@@ -466,11 +513,22 @@ ADC 计划在未来三年内把诊所数量翻一番（15 家增至 30 家）。
 \begin{tikzpicture}
   \def\xA{0}\def\xB{3.1}\def\xC{6.2}\def\xD{9.3}\def\xE{12.4}
   % 生命线
-  \lifeline{\xA}{患者\\«业务执行者»}{-12.5}{A}
-  \lifeline{\xB}{前台接待员\\«业务工人»}{-12.5}{B}
-  \lifeline{\xC}{纸质预约登记簿\\«业务实体»}{-12.5}{C}
-  \lifeline{\xD}{牙医\\«业务工人»}{-12.5}{D}
-  \lifeline{\xE}{纸质病历与结算单\\«业务实体»}{-12.5}{E}
+  \roseHead{\xA}{患者}{2}{-12.5}{A}
+  \roseHead{\xB}{前台接待员}{0}{-12.5}{B}
+  \roseHead{\xC}{纸质预约登记簿}{1}{-12.5}{C}
+  \roseHead{\xD}{牙医}{0}{-12.5}{D}
+  \roseHead{\xE}{纸质病历与结算单}{1}{-12.5}{E}
+
+  % 激活条：对象自收到消息起至处理完毕之间，在生命线上画竖直矩形
+  \activ{\xB}{-1.13}{-1.95}    % 前台接电并登记
+  \activ{\xC}{-2.03}{-3.25}    % 登记簿被写入、被翻查
+  \activ{\xB}{-3.83}{-4.15}    % 前台口头确认
+  \activ{\xD}{-4.73}{-9.55}    % 牙医接诊、翻查、治疗
+  \activ{\xE}{-6.53}{-6.85}    % 病历写主诉
+  \activ{\xE}{-8.33}{-8.65}    % 病历写治疗项目
+  \activ{\xB}{-9.23}{-9.55}    % 前台被告知费用
+  \activ{\xE}{-10.13}{-10.45}  % 病历写结算单
+  \activ{\xB}{-11.03}{-12.25}  % 前台收款、登记状态
 
   % 消息
   \msg{\xA}{-1.25}{\xB}{致电提出就诊需求（姓名、症状、期望时间）}
@@ -512,11 +570,23 @@ ADC 计划在未来三年内把诊所数量翻一番（15 家增至 30 家）。
 \centering
 \begin{tikzpicture}
   \def\xA{0}\def\xB{3.3}\def\xC{6.6}\def\xD{9.9}\def\xE{13.2}
-  \lifeline{\xA}{患者\\«业务执行者»}{-13.4}{A}
-  \lifeline{\xB}{前台接待员\\«业务工人»}{-13.4}{B}
-  \lifeline{\xC}{连锁信息管理系统\\«业务实体»}{-13.4}{C}
-  \lifeline{\xD}{牙医\\«业务工人»}{-13.4}{D}
-  \lifeline{\xE}{总部管理者\\«业务工人»}{-13.4}{E}
+  \roseHead{\xA}{患者}{2}{-13.4}{A}
+  \roseHead{\xB}{前台接待员}{0}{-13.4}{B}
+  \roseHead{\xC}{连锁信息管理系统}{1}{-13.4}{C}
+  \roseHead{\xD}{牙医}{0}{-13.4}{D}
+  \roseHead{\xE}{总部管理者}{0}{-13.4}{E}
+
+  % 激活条
+  \activ{\xB}{-1.13}{-1.95}    % 前台接电
+  \activ{\xC}{-1.98}{-3.15}    % 系统查档案并返回
+  \activ{\xC}{-3.68}{-4.85}    % 系统查时段并返回
+  \activ{\xB}{-5.38}{-5.70}    % 前台确认
+  \activ{\xD}{-6.23}{-9.20}    % 牙医接诊与治疗
+  \activ{\xC}{-7.08}{-7.40}    % 系统调档案
+  \activ{\xC}{-8.78}{-10.80}   % 系统录入治疗、试算、标记就诊
+  \activ{\xC}{-11.13}{-11.85}  % 系统生成结算单（自调用）
+  \activ{\xE}{-12.08}{-12.40}  % 总部查询
+  \activ{\xC}{-12.93}{-13.25}  % 系统反馈经营视图
 
   \msg{\xA}{-1.25}{\xB}{致电提出就诊需求}
   \msg{\xB}{-2.10}{\xC}{提交姓名与电话，请求患者档案}
@@ -1349,6 +1419,18 @@ UC-10 & 患者自助预约控制 & 预约、患者、牙医、诊所 & 与 UC-02
   \lifeline{\xE}{牙医\\«实体类»}{-14.55}{E}
   \lifeline{\xF}{预约\\«实体类»}{-14.55}{F}
 
+  % 激活条：控制类承担主要协作，激活区间贯穿每段请求—返回
+  \activ{\xB}{-1.13}{-4.90}    % 界面：接收提交、显示档案
+  \activ{\xC}{-1.99}{-4.80}    % 控制：查找患者
+  \activ{\xD}{-2.85}{-3.94}    % 患者实体：匹配档案
+  \activ{\xB}{-5.43}{-9.10}    % 界面：接收时段请求、返回时段
+  \activ{\xC}{-6.29}{-9.00}    % 控制：查询可约牙医
+  \activ{\xE}{-7.15}{-8.24}    % 牙医实体：按资质筛选
+  \activ{\xB}{-9.73}{-14.26}   % 界面：创建预约至返回编号
+  \activ{\xC}{-10.59}{-14.26}  % 控制：创建预约全过程
+  \activ{\xF}{-11.45}{-12.54}  % 预约实体：校验同时段唯一
+  \activ{\xF}{-13.17}{-13.48}  % 预约实体：创建预约
+
   \msg{\xA}{-1.25}{\xB}{提交姓名与电话}
   \msg{\xB}{-2.11}{\xC}{查找患者（姓名, 电话）}
   \msg{\xC}{-2.97}{\xD}{按姓名与电话匹配档案}
@@ -1387,6 +1469,21 @@ UC-10 & 患者自助预约控制 & 预约、患者、牙医、诊所 & 与 UC-02
   \lifeline{\xD}{患者\\«实体类»}{-13.7}{D}
   \lifeline{\xE}{治疗项目\\«实体类»}{-13.7}{E}
   \lifeline{\xF}{就诊\\«实体类»}{-13.7}{F}
+
+  % 激活条
+  \activ{\xB}{-1.13}{-4.90}    % 界面：选择就诊、显示档案
+  \activ{\xC}{-1.99}{-4.80}    % 控制：调取就诊信息
+  \activ{\xD}{-2.85}{-3.94}    % 患者实体：读取档案与过敏症
+  \activ{\xB}{-5.43}{-7.38}    % 界面：录入主诉、创建就诊
+  \activ{\xC}{-6.29}{-7.38}    % 控制：创建就诊
+  \activ{\xF}{-7.15}{-7.60}    % 就诊实体：生成就诊（进行中）
+  \activ{\xB}{-8.01}{-11.68}   % 界面：追加治疗行至返回单价
+  \activ{\xC}{-8.87}{-11.68}   % 控制：追加治疗行、计算小计
+  \activ{\xE}{-9.73}{-10.82}   % 治疗项目实体：取标准单位与单价
+  \activ{\xF}{-11.45}{-11.78}  % 就诊实体：追加明细并计算小计
+  \activ{\xB}{-12.31}{-14.26}  % 界面：确认清单至提示
+  \activ{\xC}{-13.17}{-14.26}  % 控制：标记完成、提示结算
+  \activ{\xF}{-13.17}{-13.48}  % 就诊实体：标记完成
 
   \msg{\xA}{-1.25}{\xB}{选择当日预约或患者标识}
   \msg{\xB}{-2.11}{\xC}{调取就诊信息（预约编号）}
