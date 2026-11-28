@@ -5,7 +5,7 @@
 | 项目 | 值 |
 | --- | --- |
 | 小程序 AppID | `wx99ed6b99097f132c` |
-| 当前体验版 | `1.0.3`（含退出登录） |
+| 当前体验版 | `1.0.4`（含退出登录；就诊日期窗口与 Web 系统一致） |
 | 云开发环境 | `adc-d2gi9s6468a75d64a` |
 | 云函数 | `adcApi`（透明转发，只放行 `/api/`） |
 | 后端 | `http://47.111.70.208:8080`（阿里云 ECS） |
@@ -73,7 +73,7 @@ D:/ADC/tools/wechat-devtools/cli.bat cloud functions deploy \
 
 # 3) 上传小程序
 D:/ADC/tools/wechat-devtools/cli.bat upload \
-    --project "D:/ADC/apps/adc-miniapp" -v 1.0.4 -d "改了什么"
+    --project "D:/ADC/apps/adc-miniapp" -v 1.0.5 -d "改了什么"
 
 # 4) 公众平台 → 管理 → 版本管理 → 开发版本 → 下拉箭头 → 选为体验版
 #    再点「体验版」页签重新下载二维码（旧码会失效）
@@ -93,6 +93,13 @@ D:/ADC/tools/wechat-devtools/cli.bat upload \
 调试模式能豁免，但不能要求老师每次去点，所以最终改成云函数方案。
 
 **③ 云函数别做成开放代理。** 只放行 `/api/`，否则任何人都能拿它当跳板。
+
+**④ 小程序最初只放 14 天，和系统对不上。** 系统规则是"当天起到下个月同一天"
+（后端 `MAX_MONTHS_AHEAD=1`，见报告 6.2），小程序 `DAYS_AHEAD=14` 会让老师在系统里
+能约的日子，在小程序里选不到。现已统一为同一窗口。
+注意月末：Java `plusMonths(1)` 把 1/31 收敛到 2/28，而 JS 直接 `new Date(y, m+1, 31)`
+会溢出到 3/3；两端都做了 clamp，否则小程序最后一天会比系统多两三天。
+提交时用的是后端返回的**原样时段字符串**（`appointmentTime`），不做时区换算，不存在日期错位。
 
 ---
 
