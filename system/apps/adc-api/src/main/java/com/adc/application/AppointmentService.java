@@ -49,8 +49,8 @@ public class AppointmentService {
     /** 报告 UC-02 规则 2：以 30 分钟为一个时段。 */
     private static final int SLOT_MINUTES = 30;
 
-    /** 可预约窗口：当天起 90 天内，与患者端自助预约口径一致。 */
-    private static final int MAX_DAYS_AHEAD = 90;
+    /** 可预约窗口：从当天起至下个月同一天（滚动窗口，12/2 登录则到 1/2）。 */
+    private static final int MAX_MONTHS_AHEAD = 1;
 
     /** 规则 3：未到诊提示窗口与阈值。 */
     private static final int NO_SHOW_WINDOW_DAYS = 90;
@@ -385,8 +385,9 @@ public class AppointmentService {
         if (date.isBefore(today)) {
             throw ApiException.badRequest("不能查询或预约已过去的日期");
         }
-        if (date.isAfter(today.plusDays(MAX_DAYS_AHEAD))) {
-            throw ApiException.badRequest("只能预约 " + MAX_DAYS_AHEAD + " 天以内的时段");
+        LocalDate limit = today.plusMonths(MAX_MONTHS_AHEAD);
+        if (date.isAfter(limit)) {
+            throw ApiException.badRequest("只能预约到 " + limit + "（当天起一个月内）");
         }
     }
 
