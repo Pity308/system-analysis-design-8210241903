@@ -82,6 +82,10 @@ system/
 
 完整交接说明（环境、接口清单、已知坑、验收清单）见仓库里的 `HANDOVER.md`。
 
+**源码下载**：[`ADC-system-source.zip`](ADC-system-source.zip)（161 个源码文件，已排除依赖目录与密钥）。
+解压后按目录结构还原到 `D:\ADC\` 即可。注意 `application.yml` 里的密钥是占位符，
+实际部署时需从环境变量或 `.env` 注入（模板见 zip 内的 `.env.example`）。
+
 ---
 
 ## 六、常见问题
