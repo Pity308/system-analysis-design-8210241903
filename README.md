@@ -37,15 +37,6 @@
 | 文件 | 说明 |
 | --- | --- |
 | `信管T2401班马博晨.pdf` | 报告成品，61 页，14 张图全部在此 |
-| `adc-report.tex` | LaTeX 源码，单文件自包含，14 张图均为 TikZ 矢量代码，非外链图片 |
-
-## 编译方法
-
-```bash
-xelatex adc-report.tex
-xelatex adc-report.tex   # 第二遍，目录与交叉引用才正确
-```
-
-环境：TeX Live 2024，XeLaTeX（依赖 ctex、tikz、tcolorbox、titlesec、tocloft）。
-
-用 Overleaf 的话：上传 `adc-report.tex` → Menu → Compiler 选 **XeLaTeX** → Recompile（它会自动处理两遍）。
+| `SYSTEM.md` | 系统演示操作指南（公网地址、账号、演示路线） |
+| `system/` | 系统源码（后端、前端、小程序、部署脚本） |
+| `ADC-system-source.zip` | 源码打包下载 |
