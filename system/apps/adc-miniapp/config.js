@@ -21,8 +21,12 @@ const BASE_URL_DEV = 'http://127.0.0.1:8080'
  * 体验版 / 正式版用的地址。两种填法都行：
  *   有备案域名： 'https://adc.example.com'      ← 推荐，微信要求 https
  *   只有公网 IP：'http://1.2.3.4:8080'          ← 仅课程演示，正式发布必须换成 https 域名
+ *
+ * 当前：课程演示用公网 IP，体验版真机扫码可连后端。
+ * 注意：体验版必须勾选「不校验合法域名」（开发者工具 → 详情 → 本地设置），
+ *       否则微信会拦截 http 请求。正式发布需换成 https 备案域名。
  */
-const BASE_URL_PROD = ''
+const BASE_URL_PROD = 'http://47.111.70.208:8080'
 
 function resolveBaseUrl() {
   if (!BASE_URL_PROD) return BASE_URL_DEV
