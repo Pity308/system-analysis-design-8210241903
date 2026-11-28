@@ -1,0 +1,77 @@
+<view class="page">
+  <view class="brand">
+    <view class="brand-title">我的预约</view>
+    <view class="brand-sub" wx:if="{{bound}}">{{patient.fullName}} · {{patient.phone}}</view>
+    <view class="brand-sub" wx:else>只显示本人预约</view>
+  </view>
+
+  <view wx:if="{{err}}" class="notice notice-error">{{err}}</view>
+
+  <view wx:if="{{!bound && !loading}}" class="card">
+    <view class="card-title">还没有绑定就诊档案</view>
+    <view class="hint">绑定后才能查看自己的预约记录。</view>
+    <view style="height:24rpx"></view>
+    <view class="btn btn-primary" bindtap="goBind">去填写实名信息</view>
+  </view>
+
+  <view wx:elif="{{loading}}" class="loading">加载中…</view>
+
+  <block wx:else>
+    <view class="section-head">
+      <text class="section-title">待就诊</text>
+      <text class="hint">{{upcoming.length}} 条</text>
+    </view>
+
+    <view wx:if="{{!upcoming.length}}" class="card empty">
+      暂无待就诊预约
+      <view style="height:24rpx"></view>
+      <view class="btn btn-ghost btn-sm" bindtap="goBook" style="display:inline-block;padding:0 32rpx">去预约</view>
+    </view>
+
+    <view wx:for="{{upcoming}}" wx:key="appointmentId" class="card appt">
+      <view class="between">
+        <view class="appt-when">
+          <text class="appt-date">{{item.dateText}}</text>
+          <text class="appt-time">{{item.timeText}}</text>
+        </view>
+        <text class="tag {{item.statusClass}}">{{item.status}}</text>
+      </view>
+
+      <view class="appt-line">{{item.clinicName}} · {{item.dentistName}}</view>
+      <view class="appt-line muted" wx:if="{{item.itemNames}}">治疗需求：{{item.itemNames}}</view>
+      <view class="appt-line muted" wx:if="{{item.note}}">备注：{{item.note}}</view>
+      <view class="appt-line muted">预约单号：{{item.appointmentNo}}</view>
+
+      <view class="divider"></view>
+
+      <view class="between">
+        <text class="hint">{{item.cancellable ? '距开始 24 小时以上，可自助取消' : item.lockHint}}</text>
+        <view class="appt-actions">
+          <view wx:if="{{item.lockHint}}" class="btn btn-ghost btn-sm" data-phone="{{item.clinicPhone}}" bindtap="callClinic">致电诊所</view>
+          <view wx:else class="btn btn-ghost btn-sm danger" data-id="{{item.appointmentId}}" data-no="{{item.appointmentNo}}" bindtap="cancel">取消预约</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="section-head" wx:if="{{history.length}}">
+      <text class="section-title">历史记录</text>
+      <text class="hint">{{history.length}} 条</text>
+    </view>
+
+    <view wx:for="{{history}}" wx:key="appointmentId" class="card appt appt-past">
+      <view class="between">
+        <view class="appt-when">
+          <text class="appt-date">{{item.dateText}}</text>
+          <text class="appt-time">{{item.timeText}}</text>
+        </view>
+        <text class="tag {{item.statusClass}}">{{item.status}}</text>
+      </view>
+      <view class="appt-line">{{item.clinicName}} · {{item.dentistName}}</view>
+      <view class="appt-line muted" wx:if="{{item.itemNames}}">治疗需求：{{item.itemNames}}</view>
+      <view class="appt-line muted" wx:if="{{item.cancelReason}}">取消原因：{{item.cancelReason}}</view>
+      <view class="appt-line muted">预约单号：{{item.appointmentNo}}</view>
+    </view>
+  </block>
+
+  <view class="footer-space"></view>
+</view>

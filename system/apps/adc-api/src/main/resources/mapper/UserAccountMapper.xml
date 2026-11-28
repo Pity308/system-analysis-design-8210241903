@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.adc.infrastructure.persistence.UserAccountMapper">
+
+    <resultMap id="accountMap" type="com.adc.domain.model.UserAccount">
+        <id     property="accountId"    column="account_id"/>
+        <result property="employeeId"   column="employee_id"/>
+        <result property="username"     column="username"/>
+        <result property="passwordHash" column="password_hash"/>
+        <result property="roleCode"     column="role_code"/>
+        <result property="status"       column="status"/>
+        <result property="lastLoginAt"  column="last_login_at"/>
+        <result property="fullName"     column="full_name"/>
+        <result property="clinicId"     column="clinic_id"/>
+        <result property="clinicName"   column="clinic_name"/>
+    </resultMap>
+
+    <sql id="cols">
+        ua.account_id, ua.employee_id, ua.username, ua.password_hash, ua.role_code,
+        ua.status, ua.last_login_at,
+        e.full_name,
+        COALESCE(r.clinic_id, dc.clinic_id) AS clinic_id,
+        c.clinic_name
+    </sql>
+
+    <!-- 前台取 receptionist.clinic_id；牙医取主执业点（is_primary 优先，其次编号最小）；管理员为空 -->
+    <sql id="joins">
+        JOIN employee e ON e.employee_id = ua.employee_id
+        LEFT JOIN receptionist r ON r.employee_id = ua.employee_id
+        LEFT JOIN LATERAL (
+            SELECT d.clinic_id
+            FROM dentist_clinic d
+            WHERE d.employee_id = ua.employee_id
+            ORDER BY d.is_primary DESC, d.clinic_id
+            LIMIT 1
+        ) dc ON TRUE
+        LEFT JOIN clinic c ON c.clinic_id = COALESCE(r.clinic_id, dc.clinic_id)
+    </sql>
+
+    <select id="findByUsername" resultMap="accountMap">
+        SELECT <include refid="cols"/>
+        FROM user_account ua
+        <include refid="joins"/>
+        WHERE ua.username = #{username}
+    </select>
+
+    <select id="findByEmployeeId" resultMap="accountMap">
+        SELECT <include refid="cols"/>
+        FROM user_account ua
+        <include refid="joins"/>
+        WHERE ua.employee_id = #{employeeId}
+    </select>
+
+    <update id="updateLastLogin">
+        UPDATE user_account SET last_login_at = #{at} WHERE account_id = #{accountId}
+    </update>
+
+</mapper>

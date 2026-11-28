@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.adc.infrastructure.persistence.ReportMapper">
+
+    <!--
+      取消率按诊所：预约侧统计三态，收入侧按结算单统计。
+      <if> 里的日期用 appointment_time / issue_date 的区间，左闭右开，避免月末漏一天。
+    -->
+    <select id="cancellationByClinic" resultType="java.util.Map">
+        WITH ap AS (
+            SELECT a.clinic_id,
+                   COUNT(*)                                        AS total,
+                   COUNT(*) FILTER (WHERE a.status = '已就诊')      AS attended,
+                   COUNT(*) FILTER (WHERE a.status = '未到诊')      AS no_show,
+                   COUNT(*) FILTER (WHERE a.status = '已取消')      AS cancelled
+            FROM appointment a
+            WHERE a.appointment_time &gt;= #{from}
+              AND a.appointment_time &lt;  (#{to}::date + INTERVAL '1 day')
+            <if test="clinicId != null">
+              AND a.clinic_id = #{clinicId}
+            </if>
+            GROUP BY a.clinic_id
+        ),
+        vs AS (
+            SELECT v.clinic_id, COUNT(*) AS visits
+            FROM visit v
+            WHERE v.arrival_time &gt;= #{from}
+              AND v.arrival_time &lt;  (#{to}::date + INTERVAL '1 day')
+            GROUP BY v.clinic_id
+        ),
+        rev AS (
+            SELECT COALESCE(v.clinic_id, ov.clinic_id) AS clinic_id,
+                   COALESCE(SUM(s.total_due), 0)       AS revenue
+            FROM statement s
+            LEFT JOIN visit     v  ON v.visit_id      = s.visit_id
+            LEFT JOIN statement o  ON o.statement_id  = s.reversal_of_id
+            LEFT JOIN visit     ov ON ov.visit_id     = o.visit_id
+            WHERE s.status IN ('已出具', '待支付', '已结算')
+              AND s.issue_date &gt;= #{from}
+              AND s.issue_date &lt;= #{to}
+            GROUP BY COALESCE(v.clinic_id, ov.clinic_id)
+        )
+        SELECT c.clinic_id                                   AS clinic_id,
+               c.clinic_name                                 AS clinic_name,
+               COALESCE(ap.total, 0)                         AS total,
+               COALESCE(ap.attended, 0)                      AS attended,
+               COALESCE(ap.no_show, 0)                       AS no_show,
+               COALESCE(ap.cancelled, 0)                     AS cancelled,
+               COALESCE(vs.visits, 0)                        AS visits,
+               COALESCE(rev.revenue, 0)                      AS revenue
+        FROM clinic c
+        LEFT JOIN ap  ON ap.clinic_id  = c.clinic_id
+        LEFT JOIN vs  ON vs.clinic_id  = c.clinic_id
+        LEFT JOIN rev ON rev.clinic_id = c.clinic_id
+        WHERE COALESCE(ap.total, 0) &gt; 0 OR COALESCE(vs.visits, 0) &gt; 0
+        ORDER BY c.clinic_id
+    </select>
+
+    <select id="cancellationByChannel" resultType="java.util.Map">
+        SELECT a.channel                                      AS channel,
+               COUNT(*)                                       AS total,
+               COUNT(*) FILTER (WHERE a.status = '未到诊')     AS no_show,
+               COUNT(*) FILTER (WHERE a.status = '已取消')     AS cancelled,
+               COUNT(*) FILTER (WHERE a.status = '已就诊')     AS attended
+        FROM appointment a
+        WHERE a.appointment_time &gt;= #{from}
+          AND a.appointment_time &lt;  (#{to}::date + INTERVAL '1 day')
+        <if test="clinicId != null">
+          AND a.clinic_id = #{clinicId}
+        </if>
+        GROUP BY a.channel
+        ORDER BY a.channel
+    </select>
+
+    <!-- 季度业绩：只统计已完成就诊，收入按结算单（红冲已抵销） -->
+    <select id="quarterByDentist" resultType="java.util.Map">
+        WITH vv AS (
+            SELECT v.employee_id, COUNT(*) AS visits
+            FROM visit v
+            WHERE v.status = '已完成'
+              AND v.arrival_time &gt;= #{start}
+              AND v.arrival_time &lt;  #{end}
+            GROUP BY v.employee_id
+        ),
+        ii AS (
+            SELECT v.employee_id, COUNT(vt.vt_id) AS items
+            FROM visit v
+            JOIN visit_treatment vt ON vt.visit_id = v.visit_id
+            WHERE v.status = '已完成'
+              AND v.arrival_time &gt;= #{start}
+              AND v.arrival_time &lt;  #{end}
+            GROUP BY v.employee_id
+        ),
+        rev AS (
+            SELECT COALESCE(v.employee_id, ov.employee_id) AS employee_id,
+                   COALESCE(SUM(s.total_due), 0)           AS revenue
+            FROM statement s
+            LEFT JOIN visit     v  ON v.visit_id     = s.visit_id
+            LEFT JOIN statement o  ON o.statement_id = s.reversal_of_id
+            LEFT JOIN visit     ov ON ov.visit_id    = o.visit_id
+            WHERE s.status IN ('已出具', '待支付', '已结算')
+              AND s.issue_date &gt;= #{start}
+              AND s.issue_date &lt;  #{end}
+            GROUP BY COALESCE(v.employee_id, ov.employee_id)
+        )
+        SELECT d.employee_id   AS employee_id,
+               e.full_name     AS dentist_name,
+               (SELECT string_agg(c.clinic_name, '、' ORDER BY c.clinic_id)
+                  FROM dentist_clinic dc
+                  JOIN clinic c ON c.clinic_id = dc.clinic_id
+                 WHERE dc.employee_id = d.employee_id) AS clinic_names,
+               COALESCE(vv.visits, 0)  AS visits,
+               COALESCE(ii.items, 0)   AS items,
+               COALESCE(rev.revenue, 0) AS revenue
+        FROM dentist d
+        JOIN employee e ON e.employee_id = d.employee_id
+        LEFT JOIN vv  ON vv.employee_id  = d.employee_id
+        LEFT JOIN ii  ON ii.employee_id  = d.employee_id
+        LEFT JOIN rev ON rev.employee_id = d.employee_id
+        WHERE COALESCE(vv.visits, 0) &gt; 0 OR COALESCE(rev.revenue, 0) &lt;&gt; 0
+        ORDER BY COALESCE(rev.revenue, 0) DESC
+    </select>
+
+</mapper>

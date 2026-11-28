@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.adc.infrastructure.persistence.AuditMapper">
+
+    <insert id="insert" parameterType="com.adc.domain.model.AuditLog"
+            useGeneratedKeys="true" keyProperty="logId" keyColumn="log_id">
+        INSERT INTO audit_log (account_id, action, entity, entity_id, detail, ip, created_at)
+        VALUES (#{accountId}, #{action}, #{entity}, #{entityId}, #{detail}, #{ip}, #{createdAt})
+    </insert>
+
+    <select id="findRecent" resultType="com.adc.application.dto.AuditLogView">
+        SELECT l.log_id     AS log_id,
+               l.account_id AS account_id,
+               COALESCE(e.full_name, '系统') AS actor_name,
+               COALESCE(u.role_code, 'SYSTEM') AS actor_role,
+               l.action     AS action,
+               l.entity     AS entity,
+               l.entity_id  AS entity_id,
+               l.detail     AS detail,
+               l.ip         AS ip,
+               l.created_at AS created_at
+        FROM audit_log l
+        LEFT JOIN user_account u ON u.account_id = l.account_id
+        LEFT JOIN employee     e ON e.employee_id = u.employee_id
+        <where>
+            <if test="entity != null and entity != ''">
+                AND l.entity = #{entity}
+            </if>
+            <if test="entityId != null">
+                AND l.entity_id = #{entityId}
+            </if>
+        </where>
+        ORDER BY l.log_id DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>

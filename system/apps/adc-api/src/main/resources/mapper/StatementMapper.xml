@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.adc.infrastructure.persistence.StatementMapper">
+
+    <resultMap id="statementMap" type="com.adc.domain.model.Statement">
+        <id     property="statementId"   column="statement_id"/>
+        <result property="statementNo"   column="statement_no"/>
+        <result property="visitId"       column="visit_id"/>
+        <result property="patientId"     column="patient_id"/>
+        <result property="reversalOfId"  column="reversal_of_id"/>
+        <result property="issueDate"     column="issue_date"/>
+        <result property="treatmentFee"  column="treatment_fee"/>
+        <result property="materialFee"   column="material_fee"/>
+        <result property="discount"      column="discount"/>
+        <result property="totalDue"      column="total_due"/>
+        <result property="paidAmount"    column="paid_amount"/>
+        <result property="paymentMethod" column="payment_method"/>
+        <result property="paymentTime"   column="payment_time"/>
+        <result property="status"        column="status"/>
+        <result property="claimNo"       column="claim_no"/>
+        <result property="patientName"   column="patient_name"/>
+        <result property="clinicName"    column="clinic_name"/>
+        <result property="clinicCode"    column="clinic_code"/>
+    </resultMap>
+
+    <sql id="joinCols">
+        s.statement_id, s.statement_no, s.visit_id, s.patient_id, s.reversal_of_id,
+        s.issue_date, s.treatment_fee, s.material_fee, s.discount, s.total_due,
+        s.paid_amount, s.payment_method, s.payment_time, s.status, s.claim_no,
+        p.full_name AS patient_name,
+        c.clinic_name,
+        c.clinic_code
+    </sql>
+
+    <sql id="fromJoins">
+        FROM statement s
+        JOIN patient p ON p.patient_id = s.patient_id
+        LEFT JOIN visit  v ON v.visit_id  = s.visit_id
+        LEFT JOIN clinic c ON c.clinic_id = v.clinic_id
+    </sql>
+
+    <select id="findById" resultMap="statementMap">
+        SELECT <include refid="joinCols"/> <include refid="fromJoins"/>
+        WHERE s.statement_id = #{statementId}
+    </select>
+
+    <select id="findByNo" resultMap="statementMap">
+        SELECT <include refid="joinCols"/> <include refid="fromJoins"/>
+        WHERE s.statement_no = #{statementNo}
+    </select>
+
+    <select id="findByVisit" resultMap="statementMap">
+        SELECT <include refid="joinCols"/> <include refid="fromJoins"/>
+        WHERE s.visit_id = #{visitId}
+        ORDER BY s.statement_id DESC
+        LIMIT 1
+    </select>
+
+    <select id="findByPatient" resultMap="statementMap">
+        SELECT <include refid="joinCols"/> <include refid="fromJoins"/>
+        WHERE s.patient_id = #{patientId}
+        ORDER BY s.statement_id DESC
+    </select>
+
+    <insert id="insert" parameterType="com.adc.domain.model.Statement"
+            useGeneratedKeys="true" keyProperty="statementId" keyColumn="statement_id">
+        INSERT INTO statement (statement_no, visit_id, patient_id, reversal_of_id, issue_date,
+                               treatment_fee, material_fee, discount, total_due,
+                               paid_amount, status)
+        VALUES (#{statementNo}, #{visitId}, #{patientId}, #{reversalOfId}, #{issueDate},
+                #{treatmentFee}, #{materialFee}, #{discount}, #{totalDue},
+                #{paidAmount}, #{status})
+    </insert>
+
+    <select id="lockSerial" resultType="java.lang.Integer">
+        SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(#{key}))) t
+    </select>
+
+    <select id="maxSerial" resultType="java.lang.Integer">
+        SELECT COALESCE(MAX(CAST(RIGHT(statement_no, 4) AS INTEGER)), 0)
+        FROM statement
+        WHERE statement_no LIKE #{prefix} || '%'
+    </select>
+
+    <update id="updateProgress">
+        UPDATE statement
+        SET status = #{status},
+            paid_amount = #{paidAmount},
+            payment_method = #{paymentMethod},
+            payment_time = #{paymentTime}
+        WHERE statement_id = #{statementId}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE statement SET status = #{status} WHERE statement_id = #{statementId}
+    </update>
+
+    <insert id="insertPayment" parameterType="com.adc.domain.model.Payment"
+            useGeneratedKeys="true" keyProperty="paymentId" keyColumn="payment_id">
+        INSERT INTO payment (statement_id, amount, method, gateway_txn_no, status, paid_at, fail_reason)
+        VALUES (#{statementId}, #{amount}, #{method}, #{gatewayTxnNo}, #{status}, #{paidAt}, #{failReason})
+    </insert>
+
+    <!-- 别名一律用下划线形式，交给 map-underscore-to-camel-case 转换；
+         PostgreSQL 会把未加引号的驼峰别名折成小写，写成 AS paymentId 反而映射不上 -->
+    <select id="findPayments" resultType="com.adc.domain.model.Payment">
+        SELECT payment_id, statement_id, amount, method, gateway_txn_no,
+               status, paid_at, fail_reason
+        FROM payment
+        WHERE statement_id = #{statementId}
+        ORDER BY payment_id
+    </select>
+
+</mapper>

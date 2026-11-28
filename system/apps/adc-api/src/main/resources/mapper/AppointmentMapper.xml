@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.adc.infrastructure.persistence.AppointmentMapper">
+
+    <resultMap id="appointmentMap" type="com.adc.domain.model.Appointment">
+        <id     property="appointmentId"    column="appointment_id"/>
+        <result property="appointmentNo"    column="appointment_no"/>
+        <result property="patientId"        column="patient_id"/>
+        <result property="employeeId"       column="employee_id"/>
+        <result property="clinicId"         column="clinic_id"/>
+        <result property="appointmentTime"  column="appointment_time"/>
+        <result property="expectedMinutes"  column="expected_minutes"/>
+        <result property="channel"          column="channel"/>
+        <result property="status"           column="status"/>
+        <result property="createdTime"      column="created_time"/>
+        <result property="cancelReason"     column="cancel_reason"/>
+        <result property="note"             column="note"/>
+        <result property="patientName"      column="patient_name"/>
+        <result property="patientPhone"     column="patient_phone"/>
+        <result property="dentistName"      column="dentist_name"/>
+        <result property="clinicName"       column="clinic_name"/>
+        <result property="clinicCode"       column="clinic_code"/>
+    </resultMap>
+
+    <!--
+      资质匹配：治疗项目要求的资质必须被该牙医持有。
+      报告 UC-02 规则 5——“无资质匹配时系统不给出该牙医”，所以这里是过滤而非提示。
+      注意：PostgreSQL 会把未加引号的别名折成小写，因此这里一律用 resultMap 显式映射。
+    -->
+    <resultMap id="shiftMap" type="com.adc.domain.model.DentistShift">
+        <id     property="shiftId"     column="shift_id"/>
+        <result property="employeeId"  column="employee_id"/>
+        <result property="clinicId"    column="clinic_id"/>
+        <result property="workDate"    column="work_date"/>
+        <result property="startTime"   column="start_time"/>
+        <result property="endTime"     column="end_time"/>
+        <result property="dentistName" column="dentist_name"/>
+        <result property="title"       column="title"/>
+        <result property="specialty"   column="specialty"/>
+        <result property="clinicName"  column="clinic_name"/>
+        <result property="clinicCode"  column="clinic_code"/>
+        <result property="qualificationCsv" column="qual_csv"/>
+    </resultMap>
+
+    <select id="findShifts" resultMap="shiftMap">
+        SELECT ds.shift_id, ds.employee_id, ds.clinic_id, ds.work_date, ds.start_time, ds.end_time,
+               e.full_name   AS dentist_name,
+               d.title,
+               d.specialty,
+               c.clinic_name,
+               c.clinic_code,
+               (SELECT string_agg(dq.qualification_id::text, ',')
+                  FROM dentist_qualification dq
+                 WHERE dq.employee_id = ds.employee_id) AS qual_csv
+        FROM dentist_schedule ds
+        JOIN dentist  d ON d.employee_id = ds.employee_id
+        JOIN employee e ON e.employee_id = ds.employee_id
+        JOIN clinic   c ON c.clinic_id   = ds.clinic_id
+        WHERE ds.work_date = #{date}
+          AND e.status = '在职'
+          AND c.status = '营业'
+        <if test="clinicId != null">
+          AND ds.clinic_id = #{clinicId}
+        </if>
+        ORDER BY ds.start_time, ds.employee_id
+    </select>
+
+    <select id="findShiftCovering" resultMap="shiftMap">
+        SELECT ds.shift_id, ds.employee_id, ds.clinic_id, ds.work_date, ds.start_time, ds.end_time,
+               e.full_name AS dentist_name, d.title, d.specialty,
+               c.clinic_name, c.clinic_code
+        FROM dentist_schedule ds
+        JOIN dentist  d ON d.employee_id = ds.employee_id
+        JOIN employee e ON e.employee_id = ds.employee_id
+        JOIN clinic   c ON c.clinic_id   = ds.clinic_id
+        WHERE ds.employee_id = #{employeeId}
+          AND ds.work_date   = #{date}
+          AND ds.clinic_id   = #{clinicId}
+          AND ds.start_time &lt;= #{startTime}
+          AND ds.end_time   &gt;= #{endTime}
+        LIMIT 1
+    </select>
+
+    <select id="findQualificationIds" resultType="java.lang.Integer">
+        SELECT qualification_id FROM dentist_qualification WHERE employee_id = #{employeeId}
+    </select>
+
+    <resultMap id="busyMap" type="com.adc.domain.model.BusyInterval">
+        <result property="employeeId" column="employee_id"/>
+        <result property="start"      column="start_at"/>
+        <result property="end"        column="end_at"/>
+    </resultMap>
+
+    <!-- 已占区间用区间重叠判断，覆盖“跨排班边界”的异常数据 -->
+    <select id="findBusy" resultMap="busyMap">
+        SELECT employee_id,
+               appointment_time AS start_at,
+               appointment_time + (expected_minutes * INTERVAL '1 minute') AS end_at
+        FROM appointment
+        WHERE status &lt;&gt; '已取消'
+          AND employee_id IN
+          <foreach collection="employeeIds" item="id" open="(" separator="," close=")">
+              #{id}
+          </foreach>
+          AND tsrange(appointment_time,
+                      appointment_time + (expected_minutes * INTERVAL '1 minute'), '[)')
+              &amp;&amp; tsrange(#{dayStart}, #{dayEnd}, '[)')
+        ORDER BY employee_id, appointment_time
+    </select>
+
+    <select id="maxSerial" resultType="java.lang.Integer">
+        SELECT COALESCE(MAX(CAST(RIGHT(appointment_no, 4) AS INTEGER)), 0)
+        FROM appointment
+        WHERE appointment_no LIKE #{prefix} || '%'
+    </select>
+
+    <!-- 事务级咨询锁：同一诊所同一天的单号生成串行化，避免并发拿到同一个流水号 -->
+    <select id="lockSerial" resultType="java.lang.Integer">
+        SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(#{key}))) t
+    </select>
+
+    <sql id="joinCols">
+        a.appointment_id, a.appointment_no, a.patient_id, a.employee_id, a.clinic_id,
+        a.appointment_time, a.expected_minutes, a.channel, a.status, a.created_time, a.cancel_reason, a.note,
+        p.full_name  AS patient_name,
+        p.phone      AS patient_phone,
+        e.full_name  AS dentist_name,
+        c.clinic_name,
+        c.clinic_code
+    </sql>
+
+    <select id="findById" resultMap="appointmentMap">
+        SELECT <include refid="joinCols"/>
+        FROM appointment a
+        JOIN patient  p ON p.patient_id  = a.patient_id
+        JOIN employee e ON e.employee_id = a.employee_id
+        JOIN clinic   c ON c.clinic_id   = a.clinic_id
+        WHERE a.appointment_id = #{appointmentId}
+    </select>
+
+    <!-- 前台到诊登记 / 牙医待就诊列表：按日期 + 诊所 / 牙医 / 状态过滤 -->
+    <select id="findByFilter" resultMap="appointmentMap">
+        SELECT <include refid="joinCols"/>
+        FROM appointment a
+        JOIN patient  p ON p.patient_id  = a.patient_id
+        JOIN employee e ON e.employee_id = a.employee_id
+        JOIN clinic   c ON c.clinic_id   = a.clinic_id
+        WHERE a.appointment_time &gt;= #{dayStart}
+          AND a.appointment_time &lt;  #{dayEnd}
+        <if test="clinicId != null">
+          AND a.clinic_id = #{clinicId}
+        </if>
+        <if test="employeeId != null">
+          AND a.employee_id = #{employeeId}
+        </if>
+        <if test="status != null and status != ''">
+          AND a.status = #{status}
+        </if>
+        ORDER BY a.appointment_time
+    </select>
+
+    <!--
+      UC-05 后台批处理：逾期未到诊的候选集。
+      条件里带 expected_minutes，是因为“迟到”不等于“没来”：预计 60 分钟的预约，
+      开始后 30 分钟仍在治疗中，不能判未到诊。宽限由服务层传入，默认 15 分钟。
+    -->
+    <select id="findOverdue" resultMap="appointmentMap">
+        SELECT <include refid="joinCols"/>
+        FROM appointment a
+        JOIN patient  p ON p.patient_id  = a.patient_id
+        JOIN employee e ON e.employee_id = a.employee_id
+        JOIN clinic   c ON c.clinic_id   = a.clinic_id
+        WHERE a.status = '待就诊'
+          AND a.appointment_time
+              + (a.expected_minutes * INTERVAL '1 minute')
+              + make_interval(mins => #{graceMinutes}) &lt; #{now}
+        <if test="clinicId != null">
+          AND a.clinic_id = #{clinicId}
+        </if>
+        ORDER BY a.appointment_time
+    </select>
+
+    <select id="findByNo" resultMap="appointmentMap">        SELECT <include refid="joinCols"/>
+        FROM appointment a
+        JOIN patient  p ON p.patient_id  = a.patient_id
+        JOIN employee e ON e.employee_id = a.employee_id
+        JOIN clinic   c ON c.clinic_id   = a.clinic_id
+        WHERE a.appointment_no = #{appointmentNo}
+    </select>
+
+    <select id="countNoShowSince" resultType="int">
+        SELECT COUNT(*) FROM appointment
+        WHERE patient_id = #{patientId}
+          AND status = '未到诊'
+          AND appointment_time &gt;= #{since}
+    </select>
+
+    <!-- UC-10 我的预约：只按患者过滤，含即将到来的与刚过去的，按时间正序 -->
+    <select id="findByPatient" resultMap="appointmentMap">
+        SELECT <include refid="joinCols"/>
+        FROM appointment a
+        JOIN patient  p ON p.patient_id  = a.patient_id
+        JOIN employee e ON e.employee_id = a.employee_id
+        JOIN clinic   c ON c.clinic_id   = a.clinic_id
+        WHERE a.patient_id = #{patientId}
+          AND a.appointment_time &gt;= #{from}
+        ORDER BY a.appointment_time
+    </select>
+
+    <insert id="insert" parameterType="com.adc.domain.model.Appointment"
+            useGeneratedKeys="true" keyProperty="appointmentId" keyColumn="appointment_id">
+        INSERT INTO appointment (appointment_no, patient_id, employee_id, clinic_id,
+                                 appointment_time, expected_minutes, channel, status, created_time, note)
+        VALUES (#{appointmentNo}, #{patientId}, #{employeeId}, #{clinicId},
+                #{appointmentTime}, #{expectedMinutes}, #{channel}, #{status}, #{createdTime}, #{note})
+    </insert>
+
+    <insert id="insertTreatment">
+        INSERT INTO appointment_treatment (appointment_id, item_id)
+        VALUES (#{appointmentId}, #{itemId})
+    </insert>
+
+    <select id="findTreatmentItemIds" resultType="java.lang.Integer">
+        SELECT item_id FROM appointment_treatment WHERE appointment_id = #{appointmentId}
+        ORDER BY item_id
+    </select>
+
+    <update id="updateStatus">
+        UPDATE appointment
+        SET status = #{status},
+            cancel_reason = #{cancelReason}
+        WHERE appointment_id = #{appointmentId}
+    </update>
+
+</mapper>

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.adc.infrastructure.persistence.ClinicMapper">
+
+  <resultMap id="clinicMap" type="com.adc.domain.model.Clinic">
+    <id     property="clinicId"    column="clinic_id"/>
+    <result property="clinicCode"  column="clinic_code"/>
+    <result property="clinicName"  column="clinic_name"/>
+    <result property="city"        column="city"/>
+    <result property="address"     column="address"/>
+    <result property="phone"       column="phone"/>
+    <result property="managerName" column="manager_name"/>
+    <result property="email"       column="email"/>
+    <result property="areaSqm"     column="area_sqm"/>
+    <result property="openDate"    column="open_date"/>
+    <result property="chairCount"  column="chair_count"/>
+    <result property="status"      column="status"/>
+  </resultMap>
+
+  <sql id="cols">
+    clinic_id, clinic_code, clinic_name, city, address, phone,
+    manager_name, email, area_sqm, open_date, chair_count, status
+  </sql>
+
+  <select id="findAll" resultMap="clinicMap">
+    SELECT <include refid="cols"/> FROM clinic ORDER BY clinic_id
+  </select>
+
+  <select id="findById" resultMap="clinicMap">
+    SELECT <include refid="cols"/> FROM clinic WHERE clinic_id = #{clinicId}
+  </select>
+
+  <select id="findByCode" resultMap="clinicMap">
+    SELECT <include refid="cols"/> FROM clinic WHERE UPPER(clinic_code) = UPPER(#{clinicCode})
+  </select>
+
+  <insert id="insert" parameterType="com.adc.domain.model.Clinic"
+          useGeneratedKeys="true" keyProperty="clinicId" keyColumn="clinic_id">
+    INSERT INTO clinic (clinic_code, clinic_name, city, address, phone,
+                        manager_name, email, area_sqm, open_date, chair_count, status)
+    VALUES (#{clinicCode}, #{clinicName}, #{city}, #{address}, #{phone},
+            #{managerName}, #{email}, #{areaSqm}, #{openDate}, #{chairCount}, #{status})
+  </insert>
+
+  <!-- 不含 clinic_code：代码是业务单号前缀，建档后只读 -->
+  <update id="updateProfile" parameterType="com.adc.domain.model.Clinic">
+    UPDATE clinic
+       SET clinic_name  = #{clinicName},
+           city         = #{city},
+           address      = #{address},
+           phone        = #{phone},
+           manager_name = #{managerName},
+           email        = #{email},
+           area_sqm     = #{areaSqm},
+           open_date    = #{openDate},
+           chair_count  = #{chairCount}
+     WHERE clinic_id = #{clinicId}
+  </update>
+
+</mapper>

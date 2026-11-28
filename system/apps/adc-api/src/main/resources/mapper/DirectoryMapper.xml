@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.adc.infrastructure.persistence.DirectoryMapper">
+
+    <!--
+      用标量子查询而不是多表 JOIN + GROUP BY：一个牙医有 n 个执业点、m 项资质，
+      JOIN 会先做笛卡尔积再 string_agg(DISTINCT ...) 去重，数据一多就慢，语义也绕。
+    -->
+    <select id="findDentists" resultType="com.adc.application.dto.DentistProfile">
+        SELECT d.employee_id   AS employee_id,
+               e.full_name     AS full_name,
+               d.license_no    AS license_no,
+               d.title         AS title,
+               d.specialty     AS specialty,
+               (SELECT string_agg(c.clinic_name, '、' ORDER BY c.clinic_id)
+                  FROM dentist_clinic dc
+                  JOIN clinic c ON c.clinic_id = dc.clinic_id
+                 WHERE dc.employee_id = d.employee_id) AS clinic_names,
+               (SELECT string_agg(q.qualification_name, '、' ORDER BY q.qualification_id)
+                  FROM dentist_qualification dq
+                  JOIN qualification q ON q.qualification_id = dq.qualification_id
+                 WHERE dq.employee_id = d.employee_id) AS qualification_names,
+               (SELECT MIN(q.valid_until)
+                  FROM dentist_qualification dq
+                  JOIN qualification q ON q.qualification_id = dq.qualification_id
+                 WHERE dq.employee_id = d.employee_id) AS earliest_expiry
+        FROM dentist d
+        JOIN employee e ON e.employee_id = d.employee_id
+        WHERE e.status = '在职'
+        ORDER BY d.employee_id
+    </select>
+
+    <update id="updateClinicStatus">
+        UPDATE clinic SET status = #{status} WHERE clinic_id = #{clinicId}
+    </update>
+
+    <select id="countFutureAppointments" resultType="int">
+        SELECT COUNT(*) FROM appointment
+        WHERE clinic_id = #{clinicId}
+          AND status = '待就诊'
+          AND appointment_time &gt;= #{now}
+    </select>
+
+    <!-- ==================== UC-06 牙医资质档案 ==================== -->
+
+    <select id="findQualifications" resultType="com.adc.application.dto.QualificationOption">
+        SELECT qualification_id  AS qualification_id,
+               qualification_name AS qualification_name,
+               issuing_authority  AS issuing_authority,
+               valid_until        AS valid_until
+        FROM qualification
+        ORDER BY qualification_id
+    </select>
+
+    <select id="findQualification" resultType="com.adc.application.dto.QualificationOption">
+        SELECT qualification_id  AS qualification_id,
+               qualification_name AS qualification_name,
+               issuing_authority  AS issuing_authority,
+               valid_until        AS valid_until
+        FROM qualification
+        WHERE qualification_id = #{qualificationId}
+    </select>
+
+    <select id="findDentistQualifications" resultType="com.adc.application.dto.DentistQualificationRow">
+        SELECT dq.dq_id            AS dq_id,
+               dq.qualification_id AS qualification_id,
+               q.qualification_name AS qualification_name,
+               q.issuing_authority AS issuing_authority,
+               q.valid_until       AS valid_until,
+               dq.obtain_date      AS obtain_date,
+               dq.certificate_no   AS certificate_no
+        FROM dentist_qualification dq
+        JOIN qualification q ON q.qualification_id = dq.qualification_id
+        WHERE dq.employee_id = #{employeeId}
+        ORDER BY q.qualification_id
+    </select>
+
+    <select id="findDentistClinics" resultType="com.adc.application.dto.DentistClinicRow">
+        SELECT dc.dc_id         AS dc_id,
+               dc.clinic_id     AS clinic_id,
+               c.clinic_code    AS clinic_code,
+               c.clinic_name    AS clinic_name,
+               dc.schedule_note AS schedule_note,
+               dc.is_primary    AS "primary"
+        FROM dentist_clinic dc
+        JOIN clinic c ON c.clinic_id = dc.clinic_id
+        WHERE dc.employee_id = #{employeeId}
+        ORDER BY dc.is_primary DESC, dc.clinic_id
+    </select>
+
+    <select id="countDentist" resultType="int">
+        SELECT COUNT(*) FROM dentist WHERE employee_id = #{employeeId}
+    </select>
+
+    <insert id="insertDentistQualification">
+        INSERT INTO dentist_qualification (employee_id, qualification_id, obtain_date, certificate_no)
+        VALUES (#{employeeId}, #{qualificationId}, #{obtainDate}, #{certificateNo})
+    </insert>
+
+    <delete id="deleteDentistQualification">
+        DELETE FROM dentist_qualification
+        WHERE employee_id = #{employeeId} AND qualification_id = #{qualificationId}
+    </delete>
+
+    <insert id="insertDentistClinic">
+        INSERT INTO dentist_clinic (employee_id, clinic_id, schedule_note, is_primary)
+        VALUES (#{employeeId}, #{clinicId}, #{scheduleNote}, #{isPrimary})
+    </insert>
+
+    <delete id="deleteDentistClinic">
+        DELETE FROM dentist_clinic
+        WHERE employee_id = #{employeeId} AND clinic_id = #{clinicId}
+    </delete>
+
+    <update id="clearPrimaryClinic">
+        UPDATE dentist_clinic SET is_primary = 0 WHERE employee_id = #{employeeId}
+    </update>
+
+    <select id="countFutureAppointmentsByDentistClinic" resultType="int">
+        SELECT COUNT(*) FROM appointment
+        WHERE employee_id = #{employeeId}
+          AND clinic_id = #{clinicId}
+          AND status = '待就诊'
+          AND appointment_time &gt;= #{now}
+    </select>
+
+    <select id="countFutureAppointmentsByQualification" resultType="int">
+        SELECT COUNT(*)
+        FROM appointment a
+        JOIN appointment_treatment ap ON ap.appointment_id = a.appointment_id
+        JOIN treatment_item ti       ON ti.item_id = ap.item_id
+        WHERE a.employee_id = #{employeeId}
+          AND a.status = '待就诊'
+          AND a.appointment_time &gt;= #{now}
+          AND ti.required_qualification_id = #{qualificationId}
+    </select>
+
+    <update id="updateDentistProfile">
+        UPDATE dentist
+           SET license_no = #{licenseNo},
+               specialty  = #{specialty},
+               title      = #{title}
+         WHERE employee_id = #{employeeId}
+    </update>
+
+    <select id="countLicenseNo" resultType="int">
+        SELECT COUNT(*) FROM dentist
+        WHERE license_no = #{licenseNo}
+        <if test="excludeEmployeeId != null">
+          AND employee_id &lt;&gt; #{excludeEmployeeId}
+        </if>
+    </select>
+
+</mapper>

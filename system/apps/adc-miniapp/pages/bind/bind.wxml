@@ -1,0 +1,53 @@
+<view class="page">
+  <view class="brand">
+    <view class="brand-title">完善就诊档案</view>
+    <view class="brand-sub">四项信息，用于把预约挂到正确的病历上</view>
+  </view>
+
+  <view wx:if="{{err}}" class="notice notice-error">{{err}}</view>
+
+  <view class="card">
+    <view class="field">
+      <view class="field-label">姓名<text class="req">*</text></view>
+      <input class="input" placeholder="与身份证一致" value="{{fullName}}"
+             data-key="fullName" bindinput="onInput" maxlength="30" />
+    </view>
+
+    <view class="field">
+      <view class="field-label">性别<text class="req">*</text></view>
+      <radio-group bindchange="onGender" class="row">
+        <label class="radio-item">
+          <radio value="男" checked="{{gender === '男'}}" color="#123a63" /><text>男</text>
+        </label>
+        <label class="radio-item">
+          <radio value="女" checked="{{gender === '女'}}" color="#123a63" /><text>女</text>
+        </label>
+      </radio-group>
+    </view>
+
+    <view class="field">
+      <view class="field-label">出生日期<text class="req">*</text></view>
+      <picker mode="date" value="{{birthDate}}" end="{{today}}" bindchange="onBirth">
+        <view class="picker-box {{birthDate ? '' : 'placeholder'}}">
+          {{birthDate || '请选择（决定是否按儿童档案处理）'}}
+        </view>
+      </picker>
+    </view>
+
+    <view class="field">
+      <view class="field-label">手机号<text class="req">*</text></view>
+      <input class="input" type="number" placeholder="11 位手机号，用于到店核对"
+             value="{{phone}}" data-key="phone" bindinput="onInput" maxlength="11" />
+    </view>
+
+    <button class="btn btn-primary" bindtap="submit" disabled="{{submitting}}">
+      {{submitting ? '提交中…' : '保存并继续预约'}}
+    </button>
+  </view>
+
+  <view class="notice notice-info">
+    <view>· 如果你在 ADC 看过牙，系统会用「姓名 + 出生日期 + 手机号」自动找到原档案，不必重复建。</view>
+    <view>· 信息对不上时不会自动合并，请到店由前台核对后再绑定，避免把别人的病历挂到你名下。</view>
+    <view>· 过敏史与紧急联系人由前台在到诊时补录：小程序里填错反而会误导医生。</view>
+  </view>
+</view>

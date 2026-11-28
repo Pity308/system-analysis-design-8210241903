@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.adc.infrastructure.persistence.VisitMapper">
+
+    <resultMap id="visitMap" type="com.adc.domain.model.Visit">
+        <id     property="visitId"        column="visit_id"/>
+        <result property="appointmentId"  column="appointment_id"/>
+        <result property="patientId"      column="patient_id"/>
+        <result property="employeeId"     column="employee_id"/>
+        <result property="clinicId"       column="clinic_id"/>
+        <result property="arrivalTime"    column="arrival_time"/>
+        <result property="endTime"        column="end_time"/>
+        <result property="recordedTime"   column="recorded_time"/>
+        <result property="chiefComplaint" column="chief_complaint"/>
+        <result property="diagnosis"      column="diagnosis"/>
+        <result property="status"         column="status"/>
+        <result property="patientName"    column="patient_name"/>
+        <result property="patientPhone"   column="patient_phone"/>
+        <result property="dentistName"    column="dentist_name"/>
+        <result property="clinicName"     column="clinic_name"/>
+        <result property="clinicCode"      column="clinic_code"/>
+        <result property="statementNo"     column="statement_no"/>
+        <result property="statementStatus" column="statement_status"/>
+    </resultMap>
+
+    <sql id="joinCols">
+        v.visit_id, v.appointment_id, v.patient_id, v.employee_id, v.clinic_id,
+        v.arrival_time, v.end_time, v.recorded_time, v.chief_complaint, v.diagnosis, v.status,
+        p.full_name AS patient_name,
+        p.phone     AS patient_phone,
+        e.full_name AS dentist_name,
+        c.clinic_name,
+        c.clinic_code,
+        s.statement_no,
+        s.status AS statement_status
+    </sql>
+
+    <sql id="joins">
+        JOIN patient  p ON p.patient_id  = v.patient_id
+        JOIN employee e ON e.employee_id = v.employee_id
+        JOIN clinic   c ON c.clinic_id   = v.clinic_id
+        LEFT JOIN statement s ON s.visit_id = v.visit_id
+    </sql>
+
+    <!-- 前台开单入口：某天某诊所的就诊列表，带上是否已开单 -->
+    <select id="findByDay" resultMap="visitMap">
+        SELECT <include refid="joinCols"/>
+        FROM visit v <include refid="joins"/>
+        WHERE v.arrival_time &gt;= #{dayStart}
+          AND v.arrival_time &lt;  #{dayEnd}
+        <if test="clinicId != null">
+          AND v.clinic_id = #{clinicId}
+        </if>
+        ORDER BY v.arrival_time DESC
+    </select>
+
+    <select id="findById" resultMap="visitMap">
+        SELECT <include refid="joinCols"/>
+        FROM visit v <include refid="joins"/>
+        WHERE v.visit_id = #{visitId}
+    </select>
+
+    <select id="findByAppointment" resultMap="visitMap">
+        SELECT <include refid="joinCols"/>
+        FROM visit v <include refid="joins"/>
+        WHERE v.appointment_id = #{appointmentId}
+    </select>
+
+    <select id="findByDentistAndDate" resultMap="visitMap">
+        SELECT <include refid="joinCols"/>
+        FROM visit v <include refid="joins"/>
+        WHERE v.employee_id = #{employeeId}
+          AND v.arrival_time &gt;= #{dayStart}
+          AND v.arrival_time &lt;  #{dayEnd}
+        ORDER BY v.arrival_time
+    </select>
+
+    <resultMap id="treatmentMap" type="com.adc.domain.model.VisitTreatment">
+        <id     property="vtId"            column="vt_id"/>
+        <result property="visitId"         column="visit_id"/>
+        <result property="itemId"          column="item_id"/>
+        <result property="toothCode"       column="tooth_code"/>
+        <result property="quantity"        column="quantity"/>
+        <result property="consumedUnits"   column="consumed_units"/>
+        <result property="unitPrice"       column="unit_price"/>
+        <result property="subtotal"        column="subtotal"/>
+        <result property="executedTime"    column="executed_time"/>
+        <result property="itemName"        column="item_name"/>
+        <result property="standardUnit"    column="standard_unit"/>
+        <result property="contraindication" column="contraindication"/>
+    </resultMap>
+
+    <select id="findTreatments" resultMap="treatmentMap">
+        SELECT vt.vt_id, vt.visit_id, vt.item_id, vt.tooth_code, vt.quantity,
+               vt.consumed_units, vt.unit_price, vt.subtotal, vt.executed_time,
+               t.item_name, t.standard_unit, t.contraindication
+        FROM visit_treatment vt
+        JOIN treatment_item t ON t.item_id = vt.item_id
+        WHERE vt.visit_id = #{visitId}
+        ORDER BY vt.vt_id
+    </select>
+
+    <insert id="insert" parameterType="com.adc.domain.model.Visit"
+            useGeneratedKeys="true" keyProperty="visitId" keyColumn="visit_id">
+        INSERT INTO visit (appointment_id, patient_id, employee_id, clinic_id,
+                           arrival_time, chief_complaint, diagnosis, status, recorded_time)
+        VALUES (#{appointmentId}, #{patientId}, #{employeeId}, #{clinicId},
+                #{arrivalTime}, #{chiefComplaint}, #{diagnosis}, #{status}, #{recordedTime})
+    </insert>
+
+    <insert id="insertTreatment" parameterType="com.adc.domain.model.VisitTreatment"
+            useGeneratedKeys="true" keyProperty="vtId" keyColumn="vt_id">
+        INSERT INTO visit_treatment (visit_id, item_id, tooth_code, quantity,
+                                     consumed_units, unit_price, subtotal, executed_time)
+        VALUES (#{visitId}, #{itemId}, #{toothCode}, #{quantity},
+                #{consumedUnits}, #{unitPrice}, #{subtotal}, #{executedTime})
+    </insert>
+
+    <update id="complete">
+        UPDATE visit SET status = '已完成', end_time = #{endTime} WHERE visit_id = #{visitId}
+    </update>
+
+    <update id="updateComplaint">
+        UPDATE visit SET chief_complaint = #{chiefComplaint}, diagnosis = #{diagnosis}
+        WHERE visit_id = #{visitId}
+    </update>
+
+    <select id="countUnsettledStatements" resultType="int">
+        SELECT COUNT(*) FROM statement
+        WHERE patient_id = #{patientId}
+          AND status IN ('待出具', '已出具', '待支付')
+    </select>
+
+    <select id="findArrivalDate" resultType="java.time.LocalDate">
+        SELECT CAST(arrival_time AS DATE) FROM visit WHERE visit_id = #{visitId}
+    </select>
+
+</mapper>

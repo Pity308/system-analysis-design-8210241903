@@ -1,0 +1,228 @@
+/* ADC 患者端全局样式：只放跨页复用的骨架与原子类，页面差异留在各自 wxss 里。 */
+
+page {
+  background: #f3f5f9;
+  color: #1d2939;
+  font-size: 28rpx;
+  line-height: 1.55;
+  font-family: -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+}
+
+.page {
+  padding: 24rpx 24rpx 40rpx;
+}
+
+/* 顶部品牌条：与员工端同一套深蓝，患者一眼认得出是同一家 */
+.brand {
+  background: linear-gradient(135deg, #123a63 0%, #1c4f83 100%);
+  border-radius: 24rpx;
+  padding: 32rpx 28rpx;
+  color: #ffffff;
+  margin-bottom: 24rpx;
+}
+
+.brand-title {
+  font-size: 40rpx;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+}
+
+.brand-sub {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  opacity: 0.82;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 20rpx;
+  padding: 26rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(18, 58, 99, 0.06);
+}
+
+.card-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #123a63;
+  margin-bottom: 6rpx;
+}
+
+.hint {
+  font-size: 23rpx;
+  color: #8b95a5;
+  line-height: 1.5;
+}
+
+.muted {
+  color: #667085;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+}
+
+.between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.divider {
+  height: 1rpx;
+  background: #eceff4;
+  margin: 20rpx 0;
+}
+
+/* 表单 */
+.field {
+  margin-bottom: 22rpx;
+}
+
+.field-label {
+  font-size: 25rpx;
+  color: #475467;
+  margin-bottom: 10rpx;
+}
+
+.field-label .req {
+  color: #c0392b;
+  margin-left: 4rpx;
+}
+
+.input,
+.picker-box {
+  height: 84rpx;
+  line-height: 84rpx;
+  background: #f7f9fc;
+  border: 1rpx solid #e4e8ef;
+  border-radius: 12rpx;
+  padding: 0 20rpx;
+  font-size: 28rpx;
+  color: #1d2939;
+}
+
+.picker-box.placeholder {
+  color: #a8b1bf;
+}
+
+/* 按钮 */
+.btn {
+  height: 88rpx;
+  line-height: 88rpx;
+  text-align: center;
+  border-radius: 14rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+/* 小程序里 button 本身是块级占满宽；显式写死，避免换端渲染时缩成一团 */
+button.btn {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+button.btn::after {
+  border: 0;
+}
+
+.btn-primary {
+  background: #123a63;
+  color: #ffffff;
+}
+
+.btn-primary[disabled] {
+  background: #b9c3d1;
+  color: #ffffff;
+}
+
+.btn-ghost {
+  background: #ffffff;
+  color: #123a63;
+  border: 1rpx solid #c9d4e3;
+}
+
+.btn-sm {
+  height: 60rpx;
+  line-height: 60rpx;
+  padding: 0 26rpx;
+  font-size: 25rpx;
+  border-radius: 10rpx;
+  font-weight: 500;
+}
+
+/* 标签 */
+.tag {
+  display: inline-block;
+  padding: 4rpx 16rpx;
+  border-radius: 8rpx;
+  font-size: 22rpx;
+  line-height: 1.5;
+}
+
+.tag-amber { background: #fff4e2; color: #b26a00; }
+.tag-green { background: #e7f6ef; color: #0f7a5a; }
+.tag-gray  { background: #f0f2f5; color: #667085; }
+.tag-red   { background: #fdecea; color: #c0392b; }
+
+/* 状态提示 */
+.notice {
+  border-radius: 14rpx;
+  padding: 20rpx 22rpx;
+  font-size: 25rpx;
+  margin-bottom: 20rpx;
+  line-height: 1.55;
+}
+
+.notice-error {
+  background: #fdecea;
+  color: #a5342a;
+  border: 1rpx solid #f5c6c0;
+}
+
+.notice-warn {
+  background: #fff8e8;
+  color: #8a5a00;
+  border: 1rpx solid #f2ddb0;
+}
+
+.notice-info {
+  background: #eef4fb;
+  color: #1c4f83;
+  border: 1rpx solid #cfe0f2;
+}
+
+.empty {
+  text-align: center;
+  color: #98a2b3;
+  font-size: 26rpx;
+  padding: 60rpx 0;
+}
+
+.loading {
+  text-align: center;
+  color: #98a2b3;
+  font-size: 26rpx;
+  padding: 40rpx 0;
+}
+
+/* 底部吸附确认条 */
+.footer-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #ffffff;
+  border-top: 1rpx solid #eceff4;
+  padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -4rpx 16rpx rgba(18, 58, 99, 0.06);
+  z-index: 20;
+}
+
+.footer-space {
+  height: 180rpx;
+}

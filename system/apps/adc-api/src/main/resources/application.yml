@@ -1,0 +1,51 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: adc-api
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5433/adc
+    username: postgres
+    password: ""
+    hikari:
+      maximum-pool-size: 10
+      connection-timeout: 5000
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+  jackson:
+    default-property-inclusion: non_null
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+
+logging:
+  level:
+    com.adc: DEBUG
+    org.flywaydb: INFO
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    default-fetch-size: 100
+
+# 小程序（UC-10）。app-id / app-secret 留空时走本地开发模式：
+# openid 由 code 派生，整条链路可跑；上线前必须填齐，否则登录一律走派生值。
+adc:
+  wx:
+    app-id: ""
+    app-secret: ""
+    # 2026-11-24 已轮换为生产随机值；上云时由 .env 的 ADC_WX_TOKEN_SECRET 覆盖。
+    token-secret: "${ADC_XXX_TOKEN_SECRET:?请在 .env 设置}"
+    token-ttl-seconds: 604800
+  # 员工登录态（12 小时）。密钥与患者端分开，一条请求只能过其中一道闸。
+  auth:
+    # 2026-11-24 已轮换为生产随机值；上云时由 .env 的 ADC_AUTH_TOKEN_SECRET 覆盖。
+    token-secret: "${ADC_XXX_TOKEN_SECRET:?请在 .env 设置}"
+    token-ttl-seconds: 43200
+  # 后台批处理（报告图 14 说明：逾期未到诊判定不占窗体，由时间触发）
+  jobs:
+    no-show-enabled: true
+    no-show-cron: "0 5 0 * * *"

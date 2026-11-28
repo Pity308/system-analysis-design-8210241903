@@ -1,0 +1,27 @@
+# 构建镜像时不该带进去的东西
+#
+# 这个文件放在仓库根，Dockerfile 的上下文就是根目录。
+
+# 本机编译产物
+apps/adc-api/target/
+apps/adc-web/dist/
+
+# 依赖与本机工具链（工具链是 Windows 版，进 Linux 镜像没用）
+.m2/
+tools/
+downloads/
+data/
+bin/
+
+# 运行时与私密配置
+.env
+deploy/.env
+*.log
+
+# 前端依赖（镜像里用 npm ci 重装，平台无关）
+apps/adc-web/node_modules/
+
+# 小程序不参与容器构建
+apps/adc-miniapp/
+docs/
+*.md

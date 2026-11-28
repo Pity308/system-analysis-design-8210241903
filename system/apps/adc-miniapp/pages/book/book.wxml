@@ -1,0 +1,101 @@
+<view class="page">
+  <view class="brand">
+    <view class="brand-title">ADC 安德鲁牙科</view>
+    <view class="brand-sub" wx:if="{{bound}}">你好，{{patient.fullName}} · 在线自助预约</view>
+    <view class="brand-sub" wx:else>微信授权登录 · 在线自助预约</view>
+  </view>
+
+  <view wx:if="{{err}}" class="notice notice-error">{{err}}</view>
+
+  <!-- 未绑定：按报告 UC-10 的前置条件，先实名建档 -->
+  <view wx:if="{{!bound && !loadingBind}}" class="card">
+    <view class="card-title">先完善就诊档案</view>
+    <view class="hint">自助预约需要实名档案：姓名、性别、出生日期、手机号。过敏史由前台在到诊时补录，这里不填——避免自己填错反而误导医生。</view>
+    <view style="height:28rpx"></view>
+    <view class="btn btn-primary" bindtap="goBind">填写实名信息</view>
+  </view>
+
+  <view wx:elif="{{loadingBind}}" class="loading">正在登录…</view>
+
+  <block wx:else>
+    <view class="card">
+      <view class="card-title">1　选择接诊诊所</view>
+      <picker mode="selector" range="{{clinicNames}}" value="{{clinicIndex}}" bindchange="onClinicChange">
+        <view class="picker-box">{{clinicNames[clinicIndex]}}</view>
+      </picker>
+      <view class="hint" style="margin-top:12rpx">{{clinic.address}}</view>
+    </view>
+
+    <view class="card">
+      <view class="card-title">2　治疗需求<text class="hint"> 可多选</text></view>
+      <view class="hint">选得越准，可约时段越贴合：系统按项目所需资质筛掉不具备资质的牙医。</view>
+      <view class="chips">
+        <view wx:for="{{items}}" wx:key="itemId"
+              class="chip {{item.checked ? 'chip-on' : ''}}"
+              data-id="{{item.itemId}}" bindtap="toggleItem">
+          <text>{{item.itemName}}</text>
+          <text class="chip-price">{{item.priceText}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="card">
+      <view class="card-title">3　就诊日期</view>
+      <scroll-view scroll-x class="days" enhanced show-scrollbar="{{false}}">
+        <view wx:for="{{days}}" wx:key="date"
+              class="day {{index === dayIndex ? 'day-on' : ''}}"
+              data-index="{{index}}" bindtap="onDayTap">
+          <view class="day-week">{{item.week}}</view>
+          <view class="day-num">{{item.day}}</view>
+        </view>
+      </scroll-view>
+    </view>
+
+    <view class="card">
+      <view class="between">
+        <view class="card-title">4　选择时段与牙医</view>
+        <text class="hint" wx:if="{{!loading}}">{{groups.length}} 位可接诊</text>
+      </view>
+
+      <view wx:if="{{loading}}" class="loading">正在查询可约时段…</view>
+      <view wx:elif="{{!groups.length}}" class="empty">当天没有可约时段，换个日期试试</view>
+      <block wx:else>
+        <view wx:for="{{groups}}" wx:key="employeeId" class="dentist">
+          <view class="between dentist-head">
+            <view>
+              <text class="dentist-name">{{item.dentistName}}</text>
+              <text class="dentist-title" wx:if="{{item.title}}">{{item.title}}</text>
+            </view>
+            <text class="hint">{{item.slots.length}} 个时段</text>
+          </view>
+          <view class="slots">
+            <view wx:for="{{item.slots}}" wx:for-item="s" wx:key="start"
+                  class="slot {{s.on ? 'slot-on' : ''}}"
+                  data-employee="{{item.employeeId}}" data-start="{{s.start}}" bindtap="pick">
+              {{s.label}}
+            </view>
+          </view>
+        </view>
+      </block>
+    </view>
+
+    <view class="notice notice-info">
+      单价只作参考，到店结算时按价目表与医生实际治疗项目计费；本系统不支持在线支付。
+    </view>
+  </block>
+
+  <view class="footer-space"></view>
+</view>
+
+<view wx:if="{{picked}}" class="footer-bar">
+  <view class="between" style="margin-bottom:14rpx">
+    <view>
+      <view class="picked-main">{{picked.dateText}} {{picked.label}}</view>
+      <view class="hint">{{picked.clinicName}} · {{picked.dentistName}}</view>
+    </view>
+    <text class="picked-clear" bindtap="unpick">重选</text>
+  </view>
+  <button class="btn btn-primary" bindtap="submit" disabled="{{submitting}}">
+    {{submitting ? '提交中…' : '确认预约'}}
+  </button>
+</view>

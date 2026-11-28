@@ -1,0 +1,52 @@
+/* 我的预约：一张卡一次就诊，信息按“什么时候、在哪、谁、单号”的顺序排 */
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 8rpx 4rpx 16rpx;
+}
+
+.section-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #123a63;
+}
+
+.appt-when {
+  display: flex;
+  align-items: baseline;
+}
+
+.appt-date {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1d2939;
+}
+
+.appt-time {
+  margin-left: 14rpx;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #123a63;
+}
+
+.appt-line {
+  margin-top: 8rpx;
+  font-size: 25rpx;
+  color: #344054;
+}
+
+.appt-actions {
+  display: flex;
+  align-items: center;
+}
+
+.btn-sm.danger {
+  color: #c0392b;
+  border-color: #f0bdb6;
+}
+
+.appt-past {
+  opacity: 0.86;
+}

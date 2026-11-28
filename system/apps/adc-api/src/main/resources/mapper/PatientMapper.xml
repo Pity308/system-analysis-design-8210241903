@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.adc.infrastructure.persistence.PatientMapper">
+
+    <resultMap id="patientMap" type="com.adc.domain.model.Patient">
+        <id     property="patientId"             column="patient_id"/>
+        <result property="fullName"              column="full_name"/>
+        <result property="gender"                column="gender"/>
+        <result property="birthDate"             column="birth_date"/>
+        <result property="phone"                 column="phone"/>
+        <result property="email"                 column="email"/>
+        <result property="address"               column="address"/>
+        <result property="wxOpenid"              column="wx_openid"/>
+        <result property="createdDate"           column="created_date"/>
+        <result property="note"                  column="note"/>
+        <result property="emergencyContactName"  column="emergency_contact_name"/>
+        <result property="emergencyContactPhone" column="emergency_contact_phone"/>
+    </resultMap>
+
+    <sql id="cols">
+        patient_id, full_name, gender, birth_date, phone, email, address,
+        wx_openid, created_date, note, emergency_contact_name, emergency_contact_phone
+    </sql>
+
+    <select id="findById" resultMap="patientMap">
+        SELECT <include refid="cols"/> FROM patient WHERE patient_id = #{patientId}
+    </select>
+
+    <select id="findByOpenid" resultMap="patientMap">
+        SELECT <include refid="cols"/> FROM patient WHERE wx_openid = #{openid}
+    </select>
+
+    <select id="findByPhone" resultMap="patientMap">
+        SELECT <include refid="cols"/> FROM patient
+        WHERE phone = #{phone}
+        ORDER BY created_date DESC, patient_id DESC
+    </select>
+
+    <!--
+      查重不要求出生日期完全相等才算命中：出生日期为空时（老档案常见）退化为
+      “同名 + 同电话”，宁可多提示一次让前台核对，也不要放任重复建档。
+    -->
+    <select id="findDuplicates" resultMap="patientMap">
+        SELECT <include refid="cols"/>
+        FROM patient
+        WHERE full_name = #{fullName}
+          AND phone = #{phone}
+          <if test="birthDate != null">
+            AND (birth_date = #{birthDate} OR birth_date IS NULL)
+          </if>
+        ORDER BY patient_id
+    </select>
+
+    <select id="findAllergies" resultMap="allergyMap">
+        SELECT pa.record_id, pa.patient_id, pa.allergen_id, pa.severity,
+               pa.reaction, pa.first_record_date,
+               a.allergen_name, a.category AS allergen_category
+        FROM patient_allergy pa
+        JOIN allergen a ON a.allergen_id = pa.allergen_id
+        WHERE pa.patient_id = #{patientId}
+        ORDER BY pa.record_id
+    </select>
+
+    <resultMap id="allergyMap" type="com.adc.domain.model.PatientAllergy">
+        <id     property="recordId"        column="record_id"/>
+        <result property="patientId"       column="patient_id"/>
+        <result property="allergenId"      column="allergen_id"/>
+        <result property="severity"        column="severity"/>
+        <result property="reaction"        column="reaction"/>
+        <result property="firstRecordDate" column="first_record_date"/>
+        <result property="allergenName"    column="allergen_name"/>
+        <result property="allergenCategory" column="allergen_category"/>
+    </resultMap>
+
+    <select id="findAllergens" resultType="com.adc.domain.model.Allergen">
+        SELECT allergen_id, allergen_name, category, description
+        FROM allergen
+        ORDER BY allergen_id
+    </select>
+
+    <insert id="insert" parameterType="com.adc.domain.model.Patient"
+            useGeneratedKeys="true" keyProperty="patientId" keyColumn="patient_id">
+        INSERT INTO patient (full_name, gender, birth_date, phone, email, address,
+                             wx_openid, created_date, note,
+                             emergency_contact_name, emergency_contact_phone)
+        VALUES (#{fullName}, #{gender}, #{birthDate}, #{phone}, #{email}, #{address},
+                #{wxOpenid}, #{createdDate}, #{note},
+                #{emergencyContactName}, #{emergencyContactPhone})
+    </insert>
+
+    <insert id="insertAllergy" parameterType="com.adc.domain.model.PatientAllergy"
+            useGeneratedKeys="true" keyProperty="recordId" keyColumn="record_id">
+        INSERT INTO patient_allergy (patient_id, allergen_id, severity, reaction, first_record_date)
+        VALUES (#{patientId}, #{allergenId}, #{severity}, #{reaction}, #{firstRecordDate})
+    </insert>
+
+    <!-- UC-10 绑定：只填空位，不抢占别人已绑定的档案 -->
+    <update id="bindOpenidIfAbsent">
+        UPDATE patient
+        SET wx_openid = #{openid}
+        WHERE patient_id = #{patientId}
+          AND (wx_openid IS NULL OR wx_openid = '')
+    </update>
+
+</mapper>

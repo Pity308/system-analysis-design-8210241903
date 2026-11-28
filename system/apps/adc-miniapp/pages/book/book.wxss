@@ -1,0 +1,148 @@
+/* 自助预约页：编号 1~4 的步骤卡，患者不用记流程也知道下一步做什么 */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 16rpx;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  padding: 14rpx 20rpx;
+  margin: 0 14rpx 14rpx 0;
+  background: #f7f9fc;
+  border: 1rpx solid #e4e8ef;
+  border-radius: 100rpx;
+  font-size: 25rpx;
+  color: #344054;
+}
+
+.chip-on {
+  background: #eaf1fa;
+  border-color: #123a63;
+  color: #123a63;
+  font-weight: 600;
+}
+
+.chip-price {
+  margin-left: 10rpx;
+  font-size: 22rpx;
+  color: #8b95a5;
+}
+
+.chip-on .chip-price {
+  color: #3f6f9e;
+}
+
+/* 日期条 */
+.days {
+  white-space: nowrap;
+  margin-top: 12rpx;
+}
+
+.day {
+  display: inline-block;
+  width: 104rpx;
+  padding: 14rpx 0;
+  margin-right: 14rpx;
+  text-align: center;
+  background: #f7f9fc;
+  border: 1rpx solid #e4e8ef;
+  border-radius: 14rpx;
+}
+
+.day-on {
+  background: #123a63;
+  border-color: #123a63;
+}
+
+.day-week {
+  font-size: 22rpx;
+  color: #8b95a5;
+}
+
+.day-num {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #1d2939;
+  line-height: 1.3;
+}
+
+.day-on .day-week,
+.day-on .day-num {
+  color: #ffffff;
+}
+
+/* 牙医分组 */
+.dentist {
+  margin-top: 24rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #f0f2f5;
+}
+
+.dentist:first-child {
+  border-top: 0;
+  margin-top: 12rpx;
+  padding-top: 0;
+}
+
+.dentist-name {
+  font-size: 29rpx;
+  font-weight: 600;
+}
+
+.dentist-title {
+  margin-left: 12rpx;
+  font-size: 22rpx;
+  color: #667085;
+}
+
+.slots {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 14rpx;
+}
+
+.slot {
+  width: 148rpx;
+  height: 66rpx;
+  line-height: 66rpx;
+  text-align: center;
+  margin: 0 14rpx 14rpx 0;
+  background: #f7f9fc;
+  border: 1rpx solid #e4e8ef;
+  border-radius: 10rpx;
+  font-size: 26rpx;
+  color: #1d2939;
+}
+
+.slot-on {
+  background: #123a63;
+  border-color: #123a63;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* 底部确认条 */
+.picked-main {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #123a63;
+}
+
+.picked-clear {
+  font-size: 25rpx;
+  color: #667085;
+  padding: 8rpx 12rpx;
+}
+
+button.btn {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+button.btn::after {
+  border: 0;
+}
