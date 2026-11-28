@@ -5,7 +5,7 @@
 | 项目 | 值 |
 | --- | --- |
 | 小程序 AppID | `wx99ed6b99097f132c` |
-| 当前体验版 | `1.0.4`（含退出登录；就诊日期窗口与 Web 系统一致） |
+| 当前体验版 | `1.0.5`（含退出登录；就诊日期窗口与 Web 系统一致；整体视觉升级） |
 | 云开发环境 | `adc-d2gi9s6468a75d64a` |
 | 云函数 | `adcApi`（透明转发，只放行 `/api/`） |
 | 后端 | `http://47.111.70.208:8080`（阿里云 ECS） |
@@ -73,7 +73,7 @@ D:/ADC/tools/wechat-devtools/cli.bat cloud functions deploy \
 
 # 3) 上传小程序
 D:/ADC/tools/wechat-devtools/cli.bat upload \
-    --project "D:/ADC/apps/adc-miniapp" -v 1.0.5 -d "改了什么"
+    --project "D:/ADC/apps/adc-miniapp" -v 1.0.6 -d "改了什么"
 
 # 4) 公众平台 → 管理 → 版本管理 → 开发版本 → 下拉箭头 → 选为体验版
 #    再点「体验版」页签重新下载二维码（旧码会失效）
