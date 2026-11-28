@@ -131,6 +131,8 @@ async function submit() {
           口令以 BCrypt 哈希存储；角色写在服务端签发的票据里，前端改不了。
           患者请用微信小程序，此入口仅供员工。
         </p>
+
+        <p class="demo-pwd">演示口令：全部账号均为 <strong>123456</strong>（点击上方账号可自动填入）</p>
       </div>
     </section>
   </div>
@@ -338,6 +340,22 @@ form input:focus {
   font-size: 11px;
   color: var(--ink-3);
   line-height: 1.7;
+}
+
+.demo-pwd {
+  margin: 12px 0 0;
+  padding: 9px 12px;
+  border: 1px dashed var(--line, #d6dee8);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--ink-2, #43536b);
+  background: var(--bg-soft, #f7f9fc);
+  text-align: center;
+}
+.demo-pwd strong {
+  color: var(--brand, #173f6b);
+  font-size: 13px;
+  letter-spacing: 0.5px;
 }
 
 @media (max-width: 900px) {
