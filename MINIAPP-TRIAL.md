@@ -1,7 +1,12 @@
 # 小程序体验版：还差 3 次点击
 
 > **当前进度：代码已上传成功。**
-> 命令行上传已通过：`Using AppID: wxf083cece54d9a509` → `√ upload`（26.3 KB，版本 **1.0.0**）。
+> 命令行上传已通过：`Using AppID: wx99ed6b99097f132c` → `√ upload`（26.3 KB，版本 **1.0.0**）。
+>
+> **踩过的坑（重要）**：第一次上传时 `project.config.json` 里配的是另一个账号
+> `wxf083cece54d9a509`，代码就传到了那个号下面，所以后台「版本管理」里
+> 看不到任何版本，自然也没有「选为体验版」按钮。
+> **上传前必须确认**：`project.config.json` 的 `appid` == 你登录后台的那个小程序 AppID。
 > 说明这个 AppID 是**正式小程序账号**，不是测试号——测试号根本走不到这一步。
 >
 > 剩下的全在微信公众平台后台点，**约 90 秒**，而且要管理员微信扫码，只能你本人操作。
@@ -68,7 +73,7 @@ openid 由 `wx.login` 的 code 派生。因为 token 会缓存在手机上，
 
 ```bash
 cd /root/adc            # 服务器上的部署目录
-vi .env                 # 加两行：ADC_WX_APP_ID=wxf083cece54d9a509 / ADC_WX_APP_SECRET=***
+vi .env                 # 加两行：ADC_WX_APP_ID=wx99ed6b99097f132c / ADC_WX_APP_SECRET=***
 docker compose up -d api
 ```
 
